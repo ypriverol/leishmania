@@ -26,7 +26,7 @@ from scipy.stats import mannwhitneyu, kruskal
 import os
 
 class GeneBasedAnalyzer:
-    def __init__(self, raw_data_path='raw_data.txt'):
+    def __init__(self, raw_data_path='raw_data.txt.gz'):
         self.raw_data_path = raw_data_path
         self.df = None
         self.gene_df = None
@@ -49,8 +49,13 @@ class GeneBasedAnalyzer:
         """Load data and filter to gene-level analysis."""
         print("🔍 Loading and filtering data for gene-based analysis...")
         
-        # Load raw data
-        self.df = pd.read_csv(self.raw_data_path, sep='\t', low_memory=False)
+        # Load raw data (handle gzipped file)
+        if self.raw_data_path.endswith('.gz'):
+            import gzip
+            with gzip.open(self.raw_data_path, 'rt') as f:
+                self.df = pd.read_csv(f, sep='\t', low_memory=False)
+        else:
+            self.df = pd.read_csv(self.raw_data_path, sep='\t', low_memory=False)
         print(f"Total proteins loaded: {len(self.df)}")
         
         # Filter out decoys and contaminants
