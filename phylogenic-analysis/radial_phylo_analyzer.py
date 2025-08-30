@@ -8,13 +8,18 @@ from sklearn.impute import SimpleImputer
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, dendrogram, to_tree
 import math
+import sys
+
+# Add parent directory to path to import data_processor
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from data_processor import DataProcessor
 
 # -----------------------
 # Paths (edit if needed)
 # -----------------------
-file_path = r"../raw_data.txt"
+file_path = r"raw_data.txt.gz"
 base_out   = r"./"
-phylo_dir  = os.path.join(base_out, "phylo")
+phylo_dir  = os.path.join(base_out, "phylogenic-analysis/protein-based")
 os.makedirs(phylo_dir, exist_ok=True)
 
 # -----------------------
@@ -150,7 +155,7 @@ def calculate_protein_uniqueness(df, strain_cols):
     
     return uniqueness_data
 
-def plot_radial_phylogenetic_tree(Z, labels, uniqueness_data, out_png):
+def plot_radial_phtic_tree(Z, labels, uniqueness_data, out_png):
     """Create a true radial dendrogram using the clustering structure in Z,
     split into four species sections, and overlay per-strain pie charts.
     """
@@ -455,18 +460,18 @@ def plot_radial_phylogenetic_tree(Z, labels, uniqueness_data, out_png):
         # leader line from pie center to label for readability
         ax.plot([xp, x*0.98], [yp, y*0.98], color=color, alpha=0.3, linewidth=0.8)
     
-    # Add legend
+    # Add title
+    ax.set_title('Leishmania Phylogenic Tree based on Protein Groups', 
+                fontsize=16, pad=20)
+    
+    # Add legend below the radial plot
     legend_elements = [
         mpatches.Patch(color='lightgray', alpha=0.7, label='Outer circle: Proteins shared with other species'),
         mpatches.Patch(color='blue', alpha=0.4, label='Inner circle: Species-only shared'),
         mpatches.Patch(color='blue', alpha=0.2, label='Inner circle: Unique to sample'),
     ]
     
-    ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.4, 1))
-    
-    # Add title
-    ax.set_title('Leishmania Phylogenetic Tree\n(New layout: Outer circle + Inner two pies)', 
-                fontsize=16, pad=20)
+    ax.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, -0.005))
     
     # Remove axes
     ax.set_xticks([])
@@ -502,89 +507,29 @@ def spearman_upgma(matrix, labels, tag):
     return Z, D
 
 # -----------------------
-# Load + clean data
+# Load + clean data using common data processor
 # -----------------------
-print("Loading data...")
-df = pd.read_csv(file_path, sep="\t", low_memory=False)
+print("🔄 Loading data using common data processor...")
 
-# Filter out decoys and contaminants using proper column-based filtering
-print("Filtering out decoys and contaminants...")
-if "Reverse" in df.columns and "Potential contaminant" in df.columns:
-    # Filter out decoys (Reverse = '+') and contaminants (Potential contaminant = '+')
-    df = df[(df["Reverse"] != '+') & (df["Potential contaminant"] != '+')]
-    print(f"Removed decoys and contaminants. Remaining proteins: {len(df)}")
-else:
-    print("Warning: Reverse or Potential contaminant columns not found. Using basic filtering.")
-    df = df[~df["Protein IDs"].str.startswith("REV__")]
-    df = df[~df["Protein IDs"].str.startswith("CON__")]
+# Initialize data processor
+processor = DataProcessor(file_path)
 
-# Analyze protein groups and include those mapping to unique genes
-print("Analyzing protein groups for gene mapping...")
+# Load and process data
+protein_df, gene_df = processor.load_and_process_data()
+sample_info_df = processor.sample_info_df
 
-def extract_gene_from_fasta_header(fasta_header):
-    """Extract gene names from Fasta header."""
-    import re
-    genes = []
-    if 'GN=' in fasta_header:
-        gene_matches = re.findall(r'GN=([^=]+)', fasta_header)
-        genes.extend(gene_matches)
-    return genes
+# Use gene_df for phylogenetic analysis (only proteins with unique gene mapping)
+df = gene_df.copy()
+df = df.set_index("Protein_IDs")
 
-# Identify multi-ID proteins (protein groups)
-multi_id_mask = df["Protein IDs"].str.contains(";", na=False)
-single_id_proteins = df[~multi_id_mask].copy()
-multi_id_proteins = df[multi_id_mask].copy()
+print(f"✅ Loaded {len(df)} proteins with unique gene mapping for phylogenetic analysis")
 
-print(f"Single-ID proteins: {len(single_id_proteins)}")
-print(f"Multi-ID proteins (protein groups): {len(multi_id_proteins)}")
-
-# Analyze gene mapping for multi-ID proteins
-unique_gene_groups = []
-multiple_gene_groups = []
-
-for idx, row in multi_id_proteins.iterrows():
-    fasta_header = row["Fasta headers"]
-    genes = extract_gene_from_fasta_header(fasta_header)
-    unique_genes = list(set(genes))  # Remove duplicates
-    
-    if len(unique_genes) == 1:
-        # Maps to single gene - include this protein group
-        unique_gene_groups.append(idx)
-    elif len(unique_genes) > 1:
-        # Maps to multiple genes - exclude this protein group
-        multiple_gene_groups.append(idx)
-
-print(f"Protein groups mapping to unique genes: {len(unique_gene_groups)}")
-print(f"Protein groups mapping to multiple genes: {len(multiple_gene_groups)}")
-
-# Keep single-ID proteins + multi-ID proteins that map to unique genes
-proteins_to_keep = list(single_id_proteins.index) + unique_gene_groups
-df = df.loc[proteins_to_keep]
-
-print(f"Proteins after gene-based filtering: {len(df)}")
-
-# Filter out undetected proteins (zero intensity across all species)
-print("Filtering out undetected proteins...")
-intensity_cols = [col for col in df.columns if col.startswith("Intensity ")]
-if intensity_cols:
-    # Calculate total intensity for each protein
-    total_intensity = df[intensity_cols].sum(axis=1)
-    # Keep only proteins with at least some intensity
-    df = df[total_intensity > 0]
-    print(f"Removed undetected proteins. Remaining proteins: {len(df)}")
-
-df = df.set_index("Protein IDs")
-
-# Identify species intensity columns
-species_prefixes = {
-    "Lb": "Intensity Lb",
-    "Lg": "Intensity Lg",
-    "Ln": "Intensity Ln",
-    "Lp": "Intensity Lp",
-}
-species_cols = {sp: [c for c in df.columns if c.startswith(pref)]
-                for sp, pref in species_prefixes.items()}
-species_cols = {sp: cols for sp, cols in species_cols.items() if len(cols) > 0}
+# Identify species intensity columns using processor information
+species_cols = {}
+for species in ['Lb', 'Lg', 'Ln', 'Lp']:
+    species_cols[species] = [c for c in df.columns if c.startswith(f'Intensity {species}_')]
+    if len(species_cols[species]) > 0:
+        print(f"Found {len(species_cols[species])} columns for {species}")
 
 # Strain-level matrix
 all_cols = sum(species_cols.values(), [])
@@ -608,7 +553,7 @@ Z_spear, D_spear = spearman_upgma(X_strain.values, strain_labels, tag="strain")
 
 print("Generating radial phylogenetic tree...")
 # Generate radial phylogenetic tree
-plot_radial_phylogenetic_tree(Z_bray, strain_labels, uniqueness_data, 
+plot_radial_phtic_tree(Z_bray, strain_labels, uniqueness_data, 
                              os.path.join(phylo_dir, "radial_phylogenetic_tree.png"))
 
 # Also save the traditional dendrogram for comparison

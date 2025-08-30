@@ -20,91 +20,44 @@ import seaborn as sns
 from scipy import stats
 from scipy.stats import mannwhitneyu, kruskal
 import warnings
+import sys
+import os
+
+# Add parent directory to path to import data_processor
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from data_processor import DataProcessor
+
 warnings.filterwarnings('ignore')
 
 class ProteinIntensityAnalyzer:
-    def __init__(self, data_file="../raw_data.txt"):
+    def __init__(self, data_file="raw_data.txt.gz"):
         """
-        Initialize the analyzer with raw data file.
+        Initialize the analyzer with data processor.
         
         Args:
-            data_file (str): Path to the raw_data.txt file
+            data_file (str): Path to the raw data file (supports .txt and .gz formats)
         """
         self.data_file = data_file
-        self.df = None
-        self.intensity_columns = []
-        self.species_mapping = {}
-        self.processed_data = None
+        self.processor = None
+        self.protein_df = None
+        self.gene_df = None
+        self.sample_info_df = None
         
     def load_and_process_data(self):
-        """Load and process the raw data file."""
-        print("Loading and processing data...")
+        """Load and process data using the common data processor."""
+        print("🔄 Loading and processing data using common data processor...")
         
-        # Read the data file
-        with open(self.data_file, 'r') as f:
-            lines = f.readlines()
+        # Initialize data processor
+        self.processor = DataProcessor(self.data_file)
         
-        # Parse header to find intensity columns
-        header = lines[0].strip().split('\t')
-        self.intensity_columns = [col for col in header if col.startswith('Intensity ')]
+        # Load and process data
+        self.protein_df, self.gene_df = self.processor.load_and_process_data()
+        self.sample_info_df = self.processor.sample_info_df
         
-        # Create species mapping
-        for col in self.intensity_columns:
-            if 'Lb_' in col:
-                self.species_mapping[col] = 'Lb'
-            elif 'Lg_' in col:
-                self.species_mapping[col] = 'Lg'
-            elif 'Ln_' in col:
-                self.species_mapping[col] = 'Ln'
-            elif 'Lp_' in col:
-                self.species_mapping[col] = 'Lp'
-        
-        print(f"Found {len(self.intensity_columns)} intensity columns")
-        species_counts = {}
-        for sp in set(self.species_mapping.values()):
-            species_counts[sp] = sum(1 for v in self.species_mapping.values() if v == sp)
-        print(f"Species mapping: {species_counts}")
-        
-        # Parse data lines
-        data_rows = []
-        for line in lines[1:]:
-            parts = line.strip().split('\t')
-            if len(parts) < len(header):
-                continue
-                
-            # Check for decoys and contaminants
-            reverse = parts[272].strip() if len(parts) > 272 else ''
-            contaminant = parts[273].strip() if len(parts) > 273 else ''
-            
-            if reverse == '+' or contaminant == '+':
-                continue
-            
-            # Extract protein info
-            protein_ids = parts[0].strip()
-            if not protein_ids:
-                continue
-            
-            # Extract intensities
-            row_data = {'Protein_IDs': protein_ids}
-            for i, col in enumerate(self.intensity_columns):
-                col_idx = header.index(col)
-                if col_idx < len(parts):
-                    try:
-                        intensity = float(parts[col_idx]) if parts[col_idx].strip() else np.nan
-                    except ValueError:
-                        intensity = np.nan
-                    row_data[col] = intensity
-            
-            data_rows.append(row_data)
-        
-        self.df = pd.DataFrame(data_rows)
-        print(f"Loaded {len(self.df)} proteins after filtering decoys/contaminants")
-        
-        # Filter out undetected proteins (zero intensity across all species)
-        print("Filtering out undetected proteins...")
-        total_intensity = self.df[self.intensity_columns].sum(axis=1)
-        self.df = self.df[total_intensity > 0]
-        print(f"Removed undetected proteins. Remaining proteins: {len(self.df)}")
+        # Set up for compatibility with existing methods
+        self.df = self.protein_df  # Use protein_df as main dataframe
+        self.intensity_columns = self.processor.intensity_columns
+        self.species_mapping = self.processor.species_mapping
         
         # Calculate median intensities per protein
         self._calculate_median_intensities()
@@ -149,7 +102,7 @@ class ProteinIntensityAnalyzer:
         print(f"Overall - Non-zero log2 median intensity range: {non_zero_log_overall.min():.2f} - {non_zero_log_overall.max():.2f}")
         print(f"Overall - Proteins with non-zero median: {len(non_zero_overall)} / {len(self.df)} ({len(non_zero_overall)/len(self.df)*100:.1f}%)")
     
-    def create_violin_plots(self, output_file="intensity_violin_plots.png"):
+    def create_violin_plots(self, output_file="analysis/intensity_violin_plots.png"):
         """Create violin plots showing intensity distribution per species using median intensities."""
         print("Creating violin plots using species-specific medians...")
         
@@ -207,7 +160,7 @@ class ProteinIntensityAnalyzer:
         print(f"✅ Violin plots saved to: {output_file}")
         return plot_df
     
-    def create_histograms(self, output_file="intensity_histograms.png"):
+    def create_histograms(self, output_file="analysis/intensity_histograms.png"):
         """Create histograms with optimal binning for median intensity distributions per species (non-zero only)."""
         print("Creating histograms using species-specific medians (non-zero only)...")
         
@@ -293,7 +246,7 @@ class ProteinIntensityAnalyzer:
         print(f"✅ Histograms saved to: {output_file}")
         return plot_df
     
-    def create_ma_plots(self, output_file="ma_plots.png"):
+    def create_ma_plots(self, output_file="analysis/ma_plots.png"):
         """Create MA plots for differential analysis between species pairs using pre-calculated medians."""
         print("Creating MA plots using species-specific medians...")
         
@@ -388,7 +341,7 @@ class ProteinIntensityAnalyzer:
         
         print(f"✅ MA plots saved to: {output_file}")
     
-    def perform_statistical_tests(self, output_file="statistical_tests.txt"):
+    def perform_statistical_tests(self, output_file="analysis/statistical_tests.txt"):
         """Perform statistical tests to compare median intensity distributions between species."""
         print("Performing statistical tests using species-specific medians...")
         
@@ -459,7 +412,7 @@ class ProteinIntensityAnalyzer:
         print(f"✅ Statistical test results saved to: {output_file}")
         return results
     
-    def create_comprehensive_report(self, output_file="comprehensive_analysis_report.png"):
+    def create_comprehensive_report(self, output_file="analysis/comprehensive_analysis_report.png"):
         """Create a comprehensive analysis report with multiple visualizations using species-specific medians."""
         print("Creating comprehensive analysis report using species-specific medians...")
         
@@ -583,29 +536,98 @@ class ProteinIntensityAnalyzer:
         
         print(f"✅ Comprehensive report saved to: {output_file}")
     
+    def generate_protein_gene_counts(self, output_file="analysis/protein_gene_counts_summary.csv"):
+        """Generate protein group and unique gene counts using the data processor."""
+        print("🔬 Generating protein group and unique gene counts using data processor...")
+        
+        # Check if we have the required data
+        if self.processor is None:
+            print("❌ No data loaded. Please run load_and_process_data() first.")
+            return None
+        
+        # Use the data processor to get counts
+        protein_counts = self.processor.get_protein_counts_per_sample()
+        gene_counts = self.processor.get_gene_counts_per_sample()
+        species_totals = self.processor.get_species_totals()
+        
+        # Combine results
+        combined_results = protein_counts.merge(gene_counts, on=['Sample_Column', 'Sample_Name', 'Species'])
+        
+        # Add species totals
+        for species, totals in species_totals.items():
+            mask = combined_results['Species'] == species
+            combined_results.loc[mask, 'Protein_Groups_Total'] = totals['Protein_Groups_Total']
+            combined_results.loc[mask, 'Unique_Genes_Total'] = totals['Unique_Genes_Total']
+        
+        # Add overall totals
+        overall_summary = {
+            'Sample_Column': 'Overall_Summary',
+            'Sample_Name': 'Overall_Summary',
+            'Species': 'All',
+            'Protein_Groups_Detected': f"{combined_results['Protein_Groups_Detected'].mean():.1f} ± {combined_results['Protein_Groups_Detected'].std():.1f}",
+            'Unique_Genes_Detected': f"{combined_results['Unique_Genes_Detected'].mean():.1f} ± {combined_results['Unique_Genes_Detected'].std():.1f}",
+            'Protein_Groups_Total': len(self.protein_df),
+            'Unique_Genes_Total': len(self.gene_df)
+        }
+        
+        final_df = pd.concat([combined_results, pd.DataFrame([overall_summary])], ignore_index=True)
+        
+        # Save results
+        final_df.to_csv(output_file, index=False)
+        
+        # Print summary
+        print("\n📊 PROTEIN AND GENE COUNT SUMMARY")
+        print("=" * 50)
+        print("Sample-level counts:")
+        for _, row in combined_results.iterrows():
+            print(f"  {row['Sample_Name']} ({row['Species']}):")
+            print(f"    - Protein groups detected: {row['Protein_Groups_Detected']}")
+            print(f"    - Unique genes detected: {row['Unique_Genes_Detected']}")
+        
+        print("\nSpecies-level collapsed totals:")
+        for species, totals in species_totals.items():
+            print(f"  {species}:")
+            print(f"    - Collapsed protein groups (all samples): {totals['Protein_Groups_Total']}")
+            print(f"    - Collapsed unique genes (all samples): {totals['Unique_Genes_Total']}")
+        
+        print(f"\nOverall:")
+        print(f"  - Total protein groups: {overall_summary['Protein_Groups_Total']}")
+        print(f"  - Total unique genes: {overall_summary['Unique_Genes_Total']}")
+        
+        print(f"\n✅ Protein and gene counts saved to: {output_file}")
+        return final_df
+    
     def run_complete_analysis(self):
         """Run the complete analysis pipeline."""
         print("🚀 Starting comprehensive protein intensity analysis...")
         print("=" * 60)
         
-        # Load and process data
+        # Ensure analysis directory exists
+        import os
+        os.makedirs("analysis", exist_ok=True)
+        
+        # Load and process data using common data processor
         self.load_and_process_data()
         
+        # Generate protein and gene counts using data processor
+        self.generate_protein_gene_counts("analysis/protein_gene_counts_summary.csv")
+        
         # Create all visualizations
-        self.create_violin_plots("intensity_violin_plots.png")
-        self.create_histograms("intensity_histograms.png")
-        self.create_ma_plots("ma_plots.png")
-        self.create_comprehensive_report("comprehensive_analysis_report.png")
+        self.create_violin_plots("analysis/intensity_violin_plots.png")
+        self.create_histograms("analysis/intensity_histograms.png")
+        self.create_ma_plots("analysis/ma_plots.png")
+        self.create_comprehensive_report("analysis/comprehensive_analysis_report.png")
         
         # Perform statistical tests
-        self.perform_statistical_tests("statistical_tests.txt")
+        self.perform_statistical_tests("analysis/statistical_tests.txt")
         
         # Save processed data
-        self.df.to_csv("processed_intensity_data.csv", index=False)
+        self.protein_df.to_csv("analysis/processed_intensity_data.csv", index=False)
         
         print("=" * 60)
         print("✅ Complete analysis finished!")
         print("📁 Files generated in 'analysis' folder:")
+        print("  - protein_gene_counts_summary.csv")
         print("  - intensity_violin_plots.png")
         print("  - intensity_histograms.png") 
         print("  - ma_plots.png")
