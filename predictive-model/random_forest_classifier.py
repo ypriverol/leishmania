@@ -494,102 +494,7 @@ class LeishmaniaRandomForestClassifier:
         
         return comprehensive_results, species_comprehensive_results
     
-    def plot_stress_test_results(self, results, species_results=None):
-        """
-        Plot stress test results with species-specific analysis.
-        """
-        protein_counts = list(results.keys())
-        accuracies = [results[n]['mean'] for n in protein_counts]
-        stds = [results[n]['std'] for n in protein_counts]
-        
-        # Create subplots
-        if species_results:
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
-        else:
-            fig, ax1 = plt.subplots(1, 1, figsize=(12, 8))
-        
-        # Overall performance plot
-        ax1.errorbar(protein_counts, accuracies, yerr=stds, 
-                    marker='o', linewidth=2, markersize=8, capsize=5, 
-                    color='blue', label='Overall')
-        
-        # Add horizontal lines
-        ax1.axhline(y=0.95, color='red', linestyle='--', alpha=0.7, label='95% Accuracy Threshold')
-        ax1.axhline(y=0.90, color='orange', linestyle='--', alpha=0.7, label='90% Accuracy Threshold')
-        
-        ax1.set_xlabel('Number of Proteins')
-        ax1.set_ylabel('Classification Accuracy')
-        ax1.set_title('Overall Random Forest Performance vs Protein Coverage')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        ax1.set_xscale('log')
-        
-        # Add text annotations for overall performance
-        for i, (n_proteins, acc) in enumerate(zip(protein_counts, accuracies)):
-            if acc >= 0.95:
-                ax1.annotate(f'{acc:.3f}', (n_proteins, acc), 
-                           textcoords="offset points", xytext=(0,10), ha='center',
-                           fontweight='bold', color='green')
-            elif acc >= 0.90:
-                ax1.annotate(f'{acc:.3f}', (n_proteins, acc), 
-                           textcoords="offset points", xytext=(0,10), ha='center',
-                           fontweight='bold', color='orange')
-            else:
-                ax1.annotate(f'{acc:.3f}', (n_proteins, acc), 
-                           textcoords="offset points", xytext=(0,10), ha='center',
-                           fontweight='bold', color='red')
-        
-        # Species-specific performance plot
-        if species_results:
-            # Define colors for species
-            species_colors = {'Lb': 'blue', 'Lg': 'green', 'Ln': 'red', 'Lp': 'orange'}
-            
-            for species in species_results.keys():
-                if species in species_colors:
-                    color = species_colors[species]
-                else:
-                    color = 'gray'
-                
-                species_proteins = []
-                species_accuracies = []
-                species_stds = []
-                
-                for n_proteins in protein_counts:
-                    if n_proteins in species_results[species]:
-                        species_proteins.append(n_proteins)
-                        species_accuracies.append(species_results[species][n_proteins]['mean'])
-                        species_stds.append(species_results[species][n_proteins]['std'])
-                
-                if species_proteins:
-                    ax2.errorbar(species_proteins, species_accuracies, yerr=species_stds,
-                               marker='o', linewidth=2, markersize=6, capsize=4,
-                               color=color, label=f'{species} (n={species_results[species][species_proteins[0]]["count"]})')
-            
-            ax2.axhline(y=0.95, color='red', linestyle='--', alpha=0.7, label='95% Accuracy Threshold')
-            ax2.axhline(y=0.90, color='orange', linestyle='--', alpha=0.7, label='90% Accuracy Threshold')
-            
-            ax2.set_xlabel('Number of Proteins')
-            ax2.set_ylabel('Classification Accuracy')
-            ax2.set_title('Species-Specific Performance vs Protein Coverage')
-            ax2.legend()
-            ax2.grid(True, alpha=0.3)
-            ax2.set_xscale('log')
-        
-        plt.tight_layout()
-        plt.savefig('protein_coverage_stress_test.png', dpi=300, bbox_inches='tight')
-        plt.show()
-        
-        # Print summary
-        print(f"\nStress Test Summary:")
-        print(f"Overall - Minimum proteins for 95% accuracy: {min([n for n, r in results.items() if r['mean'] >= 0.95], default='Not achieved')}")
-        print(f"Overall - Minimum proteins for 90% accuracy: {min([n for n, r in results.items() if r['mean'] >= 0.90], default='Not achieved')}")
-        
-        if species_results:
-            print(f"\nSpecies-Specific Requirements:")
-            for species in species_results.keys():
-                species_95 = min([n for n, r in species_results[species].items() if r['mean'] >= 0.95], default='Not achieved')
-                species_90 = min([n for n, r in species_results[species].items() if r['mean'] >= 0.90], default='Not achieved')
-                print(f"{species}: 95% accuracy at {species_95} proteins, 90% accuracy at {species_90} proteins")
+
     
     def plot_species_comparison_bars(self, species_results, protein_counts):
         """
@@ -920,7 +825,6 @@ def main():
     
     # Stress test protein coverage with species-specific analysis
     stress_results, species_results = classifier.stress_test_protein_coverage(X, y)
-    classifier.plot_stress_test_results(stress_results, species_results)
     
     # Create detailed species comparison
     classifier.plot_species_comparison_bars(species_results, list(stress_results.keys()))
