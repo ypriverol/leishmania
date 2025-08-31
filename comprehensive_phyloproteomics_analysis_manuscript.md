@@ -2,47 +2,7 @@
 
 This study presents a comprehensive analysis of four *Leishmania* species (*L. braziliensis* [Lb], *L. guyanensis* [Lg], *L. naiffi* [Ln], and *L. panamensis* [Lp]) using multiple complementary approaches: protein-based and gene-based radial phylogenetic trees, quantitative proteomic analysis, and statistical comparisons of protein expression patterns. Statistical testing was performed using individual sample data, Mann-Whitney U tests for pairwise comparisons, and Benjamini-Hochberg multiple testing correction to ensure robust identification of significant expression changes. The analysis reveals distinct evolutionary patterns, functional relationships, and differential protein expression among these closely related species, providing insights into their genomic diversity, shared metabolic capabilities, and species-specific adaptations.
 
-## Figures
 
-**Figure 1.** Protein-based radial phylogenetic tree showing evolutionary relationships among *Leishmania* species based on 11,556 protein groups. The tree reveals distinct clustering patterns with Lb and Lg forming a closely related clade, while Ln and Lp show greater divergence.
-
-![Protein-based Radial Phylogenetic Tree](analysis/protein-based/radial_phylo_analyzer_protein_groups.png)
-
-**Figure 2.** Gene-based radial phylogenetic tree constructed using 8,144 proteins with unique gene mapping. This conservative approach provides enhanced resolution for distinguishing between closely related species.
-
-![Gene-based Radial Phylogenetic Tree](analysis/gene-based/radial_phylo_analyzer_gene_groups.png)
-
-**Figure 3.** Protein intensity distributions across *Leishmania* species. Panel A shows log2-transformed intensity distributions, while Panel B displays violin plots of normalized intensity values. Statistical comparisons reveal significant differences in protein expression patterns across species.
-
-![Protein Intensity Distributions](analysis/protein-based/intensity_distributions.png)
-
-**Figure 4.** MA plots for protein-based differential expression analysis. The plots show log2 fold changes versus mean expression levels for all species comparisons, with statistically significant proteins highlighted.
-
-![Protein MA Plots](analysis/protein-based/proteins_ma_plots.png)
-
-**Figure 5.** Gene-based intensity distributions and MA plots. Panel A shows intensity distributions for gene-filtered data, while Panel B displays MA plots for differential expression analysis using only proteins with unique gene mapping.
-
-![Gene-based Intensity Distributions](analysis/gene-based/intensity_distributions.png)
-
-![Gene MA Plots](analysis/gene-based/gene_ma_plots.png)
-
-**Figure 6.** t-SNE analysis of gene-filtered protein intensity data. The dimensionality reduction reveals clear clustering patterns that support the evolutionary relationships identified in phylogenetic analyses.
-
-![t-SNE Analysis](analysis/gene-based-pca/tsne_gene_intensity_classification.png)
-
-**Figure 7.** Functional category heatmap showing species-specific expression patterns across 20 functional categories. The heatmap reveals distinct metabolic and functional strategies employed by different *Leishmania* species.
-
-![Functional Category Heatmap](metabolic-analysis/refined_metabolic_heatmap.png)
-
-**Figure 8.** Random Forest model performance and feature importance. Panel A shows the confusion matrix demonstrating perfect classification accuracy, while Panel B displays the top 20 most important genes for species classification.
-
-![Random Forest Confusion Matrix](predictive-model/random_forest_confusion_matrix.png)
-
-![Random Forest Feature Importance](predictive-model/random_forest_feature_importance.png)
-
-**Figure 9.** Comprehensive stress test results for the Random Forest model. Panel A shows overall performance with confidence intervals across different protein coverage levels, while Panel B displays species-specific performance patterns.
-
-![Comprehensive Stress Test](predictive-model/comprehensive_stress_test.png)
 
 ## Phylogenetic Analysis
 
@@ -50,9 +10,17 @@ This study presents a comprehensive analysis of four *Leishmania* species (*L. b
 
 The protein-based radial phylogenetic tree was constructed using 11,556 protein groups detected across all samples, representing the complete proteomic repertoire of the four *Leishmania* species (Figure 1). This comprehensive analysis revealed a clear hierarchical structure with distinct clustering patterns among the species. The radial visualization demonstrated that *Leishmania* species *L. braziliensis* (Lb) and *L. guyanensis* (Lg) formed a closely related clade, sharing substantial protein homology, while *L. naiffi* (Ln) and *L. panamensis* (Lp) exhibited more divergent protein profiles. This clustering pattern suggests evolutionary relationships that align with known taxonomic classifications, where Lb and Lg represent more recently diverged lineages compared to Ln and Lp. Protein uniqueness analysis revealed that Ln strains exhibited the highest proportion of unique proteins (1.1-1.2% uniqueness), followed by Lg strains (0.1-0.6% uniqueness), while Lb and Lp strains showed lower uniqueness percentages (0.0-1.1% and 0.0-0.5%, respectively). This pattern indicates that Ln strains have undergone more extensive protein diversification, potentially reflecting adaptation to distinct ecological niches or functional specializations.
 
+**Figure 1.** Protein-based radial phylogenetic tree showing evolutionary relationships among *Leishmania* species based on 11,556 protein groups. The tree reveals distinct clustering patterns with Lb and Lg forming a closely related clade, while Ln and Lp show greater divergence.
+
+![Protein-based Radial Phylogenetic Tree](analysis/protein-based/radial_phylo_analyzer_protein_groups.png)
+
 ### Gene-based Phylogenetic Analysis
 
 The gene-based analysis, utilizing 8,144 genes with unique gene mapping, provided a more conservative evolutionary perspective by focusing exclusively on protein groups that map to single, well-defined genes (Figure 2). This approach eliminated potential artifacts from protein groups with ambiguous gene assignments, resulting in a more robust phylogenetic reconstruction. The gene-based radial tree revealed similar overall clustering patterns to the protein-based analysis, with *L. braziliensis* (Lb) and *L. guyanensis* (Lg) forming a cohesive clade and *L. naiffi* (Ln) and *L. panamensis* (Lp) showing greater divergence. However, the gene-based tree exhibited more pronounced branch lengths and clearer separation between species, suggesting that gene-level analysis provides enhanced resolution for distinguishing between closely related species.
+
+**Figure 2.** Gene-based radial phylogenetic tree constructed using 8,144 proteins with unique gene mapping. This conservative approach provides enhanced resolution for distinguishing between closely related species.
+
+![Gene-based Radial Phylogenetic Tree](analysis/gene-based/radial_phylo_analyzer_gene_groups.png)
 
 ## Quantitative Analysis
 
@@ -68,9 +36,17 @@ Statistical analysis using Kruskal-Wallis tests revealed highly significant diff
 
 Protein intensity analysis using log2-transformed normalized values revealed distinct expression patterns across species (Figure 3). *L. guyanensis* (Lg) strains exhibited the highest median log2 protein intensity (24.97), followed by *L. panamensis* (Lp) strains (24.95), *L. braziliensis* (Lb) strains (24.74), and *L. naiffi* (Ln) strains (24.58). The log2 intensity ranges showed consistent patterns across species, with Lb strains ranging from 18.83 to 37.59 log2 units, Lg strains from 17.70 to 37.63 log2 units, Lp strains from 18.04 to 37.21 log2 units, and Ln strains from 18.55 to 36.81 log2 units. Statistical analysis confirmed significant differences in protein expression patterns across all four species (Kruskal-Wallis test: H-statistic: 161.48, p-value: 8.78e-35), with pairwise comparisons revealing significant differential expression between most species pairs. These differences in normalized protein abundance suggest species-specific metabolic strategies and functional adaptations, with the log2 transformation providing a more robust basis for statistical comparison by reducing the impact of extreme intensity values.
 
+**Figure 3.** Protein intensity distributions across *Leishmania* species. Panel A shows log2-transformed intensity distributions, while Panel B displays violin plots of normalized intensity values. Statistical comparisons reveal significant differences in protein expression patterns across species.
+
+![Protein Intensity Distributions](analysis/protein-based/intensity_distributions.png)
+
 ### Differential Expression Analysis
 
 Differential expression analysis with rigorous statistical testing was performed using individual sample data, Mann-Whitney U tests, and Benjamini-Hochberg multiple testing correction to ensure robust identification of significant expression changes (Figure 4). The protein groups analysis examined 34,572 total protein comparisons across all six species pairs, revealing that 5,795 proteins (16.8%) showed statistically significant differential expression (corrected p-value ≤ 0.05), while 28,777 proteins (83.2%) showed no significant change. Among the statistically significant proteins, 5,666 proteins (16.4%) exhibited significant but small fold changes, 68 proteins (0.2%) were significantly overexpressed, and 61 proteins (0.2%) were significantly downregulated. The gene-filtered analysis, using only protein groups with unique gene mapping (21,048 total comparisons), showed a higher proportion of statistically significant proteins (4,168 proteins; 19.8%), with 4,059 proteins (19.3%) showing significant small fold changes, 62 proteins (0.3%) significantly overexpressed, and 47 proteins (0.2%) significantly downregulated. This higher statistical significance rate in the gene-filtered analysis suggests that proteins with clear gene mapping provide more reliable differential expression signals.
+
+**Figure 4.** MA plots for protein-based differential expression analysis. The plots show log2 fold changes versus mean expression levels for all species comparisons, with statistically significant proteins highlighted.
+
+![Protein MA Plots](analysis/protein-based/proteins_ma_plots.png)
 
 The most dramatic expression changes were observed in the comparison between *L. naiffi* (Ln) and *L. panamensis* (Lp), which showed the highest number of significantly differentially expressed proteins in both analyses, suggesting substantial functional divergence between these species. The comparison between *L. guyanensis* (Lg) and *L. naiffi* (Ln) revealed the second highest number of significant changes, with a notable bias toward overexpression in Lg relative to Ln. The *L. braziliensis* (Lb) vs *L. naiffi* (Ln) comparison showed significant functional differences between these species. In contrast, the *L. guyanensis* (Lg) vs *L. panamensis* (Lp) comparison showed the fewest significant changes, suggesting more similar functional profiles consistent with their closer phylogenetic relationship. The statistical testing revealed that most differentially expressed proteins show subtle but statistically robust changes, with only a small proportion (0.4-0.5%) exhibiting dramatic fold changes. This pattern suggests that species-specific adaptations in *Leishmania* are primarily driven by fine-tuning of protein expression rather than complete gain or loss of protein functions. The implementation of Benjamini-Hochberg correction ensures that the identified differential expression patterns are not artifacts of multiple testing, providing high confidence in the biological significance of the observed changes.
 
@@ -88,6 +64,12 @@ A comprehensive comparison between the phylogenetic radial protein group analysi
 
 To further validate these findings and provide a more conservative analysis, we performed gene-filtered protein intensity analysis using only protein groups that map to unique genes (8,143 proteins total, representing a 30% reduction from the complete dataset) (Figure 5). This approach eliminates potential artifacts from protein groups with ambiguous gene assignments and provides a cleaner dataset for analysis. The gene-filtered analysis revealed similar species-specific patterns, with *L. braziliensis* (Lb) maintaining the highest detection capacity (5,465 proteins, 67.1% of gene-filtered dataset), followed by *L. naiffi* (Ln) with 5,399 proteins (66.3%), *L. guyanensis* (Lg) with 4,567 proteins (56.1%), and *L. panamensis* (Lp) with 4,399 proteins (54.0%). Statistical analysis of the gene-filtered dataset confirmed highly significant differences across all species (Kruskal-Wallis test: H-statistic: 183.25, p-value: 1.75e-39), with pairwise comparisons revealing significant differences between most species pairs. Notably, the gene-filtered analysis showed no significant difference between *L. guyanensis* (Lg) and *L. panamensis* (Lp) (p-value: 0.42), consistent with their closer phylogenetic relationship. The gene-filtered analysis also revealed that *L. guyanensis* (Lg) exhibited the highest median log2 intensity (25.67), followed by *L. panamensis* (Lp) (25.64), *L. braziliensis* (Lb) (25.47), and *L. naiffi* (Ln) (25.03), suggesting that the more closely related species (Lg and Lp) have more similar expression profiles.
 
+**Figure 5.** Gene-based intensity distributions and MA plots. Panel A shows intensity distributions for gene-filtered data, while Panel B displays MA plots for differential expression analysis using only proteins with unique gene mapping.
+
+![Gene-based Intensity Distributions](analysis/gene-based/intensity_distributions.png)
+
+![Gene MA Plots](analysis/gene-based/gene_ma_plots.png)
+
 The gene-filtered differential expression analysis with statistical testing revealed that 4,168 proteins (19.8% of total comparisons) showed statistically significant differential expression using the same rigorous statistical approach (individual sample data, Mann-Whitney U tests, and Benjamini-Hochberg correction). This higher statistical significance rate compared to the protein groups analysis (19.8% vs 16.8%) suggests that proteins with clear gene mapping provide more reliable differential expression signals. Among the statistically significant proteins in the gene-filtered analysis, 4,059 proteins (19.3%) exhibited significant but small fold changes, 62 proteins (0.3%) were significantly overexpressed, and 47 proteins (0.2%) were significantly downregulated. The gene-filtered analysis maintained similar patterns of species-specific differential expression as the protein groups analysis, with the most dramatic changes observed between *L. naiffi* (Ln) and *L. panamensis* (Lp), and the fewest changes between *L. guyanensis* (Lg) and *L. panamensis* (Lp). This consistency between the two approaches validates the robustness of our findings and demonstrates that the observed patterns are not artifacts of complex protein group assignments but reflect genuine biological differences among *Leishmania* species. The gene-filtered approach provides additional confidence in the robustness of our findings and demonstrates that the observed patterns reflect genuine biological differences among *Leishmania* species.
 
 ### t-SNE Sample Classification Analysis
@@ -97,6 +79,10 @@ To further validate the species-specific clustering patterns observed in the phy
 The t-SNE analysis revealed clear clustering patterns that strongly support the evolutionary relationships identified in the phylogenetic analyses. The visualization showed distinct separation between species groups, with *L. braziliensis* (Lb) samples forming a cohesive cluster, *L. guyanensis* (Lg) samples clustering together, and *L. naiffi* (Ln) and *L. panamensis* (Lp) samples showing distinct but related groupings. The clustering pattern aligns with the phylogenetic relationships, where Lb and Lg form a closely related clade, while Ln and Lp show greater divergence. The t-SNE analysis used a perplexity of 30, 1000 iterations, and a random state of 42 to ensure reproducibility and optimal cluster visualization.
 
 Statistical analysis of the t-SNE results using ANOVA tests confirmed significant differences in both t-SNE components across species (p < 0.001 for both components), validating the biological significance of the observed clustering patterns. The t-SNE analysis provides additional evidence that the gene-filtered protein intensity data contains sufficient information to accurately classify samples by species, supporting the robustness of our differential expression findings. This non-linear dimensionality reduction approach complements the linear PCA analysis and provides a different perspective on sample relationships, confirming that the species-specific patterns observed in our analyses are not artifacts of the analytical methods but reflect genuine biological differences in protein expression profiles among *Leishmania* species.
+
+**Figure 6.** t-SNE analysis of gene-filtered protein intensity data. The dimensionality reduction reveals clear clustering patterns that support the evolutionary relationships identified in phylogenetic analyses.
+
+![t-SNE Analysis](analysis/gene-based-pca/tsne_gene_intensity_classification.png)
 
 ### Functional Category Analysis
 
@@ -112,13 +98,27 @@ The analysis of stress response and protein quality control revealed species-spe
 
 The functional category analysis provides valuable insights into the metabolic and functional strategies employed by different *Leishmania* species. The distinct patterns observed suggest that each species has evolved specialized functional adaptations that may reflect their specific ecological niches, host associations, or evolutionary histories. The high abundance of Signal Transduction proteins across all species underscores the importance of environmental sensing and response mechanisms in parasitic adaptation. The species-specific differences in metabolic pathway expression suggest distinct energy generation and utilization strategies, which may have important implications for understanding parasite biology and developing targeted therapeutic approaches.
 
+**Figure 7.** Functional category heatmap showing species-specific expression patterns across 20 functional categories. The heatmap reveals distinct metabolic and functional strategies employed by different *Leishmania* species.
+
+![Functional Category Heatmap](metabolic-analysis/refined_metabolic_heatmap.png)
+
 ### Predictive Modeling for Species Classification
 
 Building upon the comprehensive analysis of protein expression patterns and species-specific signatures, we developed a streamlined Random Forest machine learning model for automated *Leishmania* species classification based on protein expression profiles. The predictive model utilizes the distinct protein expression patterns identified in our analysis to classify unknown samples into the four *Leishmania* species with high accuracy. The model was trained using protein expression data from 8,144 proteins with unique gene mapping across 50 samples (24 Lb, 11 Lg, 5 Ln, 10 Lp), representing the complete dataset analyzed in our comprehensive study.
 
 The Random Forest model achieved perfect classification accuracy (100% accuracy, 1.0000 ±0.0000) with robust performance validated through 5-fold stratified cross-validation (Figure 8). The model was selected as the optimal approach due to its interpretability, robustness to overfitting, and ability to provide feature importance rankings. The model's exceptional performance demonstrates that the protein expression patterns from unique gene-mapped proteins provide excellent discriminatory power for *Leishmania* species classification. The perfect accuracy indicates that the species-specific signatures identified in our comprehensive analysis are highly distinctive and consistent across samples, validating the biological significance of the differential expression patterns observed in our phylogenetic and quantitative analyses.
 
+**Figure 8.** Random Forest model performance and feature importance. Panel A shows the confusion matrix demonstrating perfect classification accuracy, while Panel B displays the top 20 most important genes for species classification.
+
+![Random Forest Confusion Matrix](predictive-model/random_forest_confusion_matrix.png)
+
+![Random Forest Feature Importance](predictive-model/random_forest_feature_importance.png)
+
 To assess the model's practical utility for real-world applications, we conducted comprehensive stress testing with varying protein coverage scenarios (Figure 9). The stress test evaluated model performance using 50 random iterations with different numbers of detected proteins (10, 20, 50, 100, and 200 proteins), simulating realistic scenarios where samples may have limited protein quantification. The comprehensive stress test revealed that the model achieves excellent performance even with limited protein data: 10 proteins provided 84.6% ±12.8% accuracy, 20 proteins achieved 91.0% ±9.6% accuracy, 50 proteins reached 99.2% ±3.4% accuracy, and 100+ proteins achieved 99.2-100% accuracy. These results demonstrate the model's robustness and practical applicability for clinical and research settings where protein quantification may be incomplete.
+
+**Figure 9.** Comprehensive stress test results for the Random Forest model. Panel A shows overall performance with confidence intervals across different protein coverage levels, while Panel B displays species-specific performance patterns.
+
+![Comprehensive Stress Test](predictive-model/comprehensive_stress_test.png)
 
 Species-specific analysis revealed interesting patterns in classification difficulty. *L. braziliensis* (Lb) showed the most consistent performance across all protein coverage levels, achieving 92.0% ±13.3% accuracy with only 10 proteins and perfect accuracy with 50+ proteins. *L. naiffi* (Ln) also showed excellent performance, achieving 92.0% ±27.1% accuracy with 10 proteins and perfect accuracy with 50+ proteins. *L. guyanensis* (Lg) showed more variable performance, requiring 50 proteins to achieve 99.0% ±7.0% accuracy, while *L. panamensis* (Lp) showed intermediate performance, achieving 77.0% ±30.4% accuracy with 10 proteins and 97.0% ±15.5% accuracy with 50 proteins. These species-specific differences suggest that Lb and Ln have more distinctive protein expression signatures, while Lg and Lp may require more comprehensive protein profiling for accurate classification.
 
