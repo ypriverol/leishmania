@@ -1,33 +1,19 @@
 #!/usr/bin/env python3
 """
-Leishmania Species Prediction Script
-====================================
+Predict Species with Random Forest
+=================================
 
-Script for predicting Leishmania species from new protein expression data
-using the trained deep learning model.
-
-Author: Assistant
-Date: 2024
+Simple script to predict Leishmania species using the trained Random Forest model.
 """
 
 import pandas as pd
 import numpy as np
 import argparse
-from leishmania_species_classifier import LeishmaniaSpeciesClassifier
+from random_forest_classifier import LeishmaniaRandomForestClassifier
 
 def load_new_sample_data(file_path):
     """
     Load protein expression data for a new sample.
-    
-    Parameters:
-    -----------
-    file_path : str
-        Path to CSV file containing protein expression data
-        
-    Returns:
-    --------
-    numpy.ndarray
-        Protein expression values
     """
     print(f"Loading sample data from {file_path}...")
     
@@ -39,6 +25,11 @@ def load_new_sample_data(file_path):
         # This is the full dataframe format
         # Filter for unique gene mapping
         df = df[df['Unique_Gene_Mapping'] == True].copy()
+        
+        # Additional check: ensure no protein groups with multiple genes
+        if 'Gene_Names' in df.columns:
+            multi_gene_mask = df['Gene_Names'].str.contains(';|\\|', na=False)
+            df = df[~multi_gene_mask].copy()
         
         # Get intensity columns (assuming single sample)
         intensity_cols = [col for col in df.columns if col.startswith('Intensity ')]
@@ -64,18 +55,9 @@ def load_new_sample_data(file_path):
 def predict_species_from_file(model_path, sample_file, output_file=None):
     """
     Predict species for a new sample from file.
-    
-    Parameters:
-    -----------
-    model_path : str
-        Path to the trained model
-    sample_file : str
-        Path to the sample data file
-    output_file : str, optional
-        Path to save prediction results
     """
     # Load the trained model
-    classifier = LeishmaniaSpeciesClassifier()
+    classifier = LeishmaniaRandomForestClassifier()
     classifier.load_model(model_path)
     
     # Load the new sample data
@@ -112,41 +94,13 @@ def predict_species_from_file(model_path, sample_file, output_file=None):
     
     return predicted_species, confidence_scores
 
-def predict_species_from_values(model_path, protein_values):
-    """
-    Predict species from protein expression values array.
-    
-    Parameters:
-    -----------
-    model_path : str
-        Path to the trained model
-    protein_values : numpy.ndarray
-        Protein expression values
-        
-    Returns:
-    --------
-    tuple
-        (predicted_species, confidence_scores)
-    """
-    # Load the trained model
-    classifier = LeishmaniaSpeciesClassifier()
-    classifier.load_model(model_path)
-    
-    # Apply log2 transformation
-    protein_values_log2 = np.log2(protein_values + 1)
-    
-    # Make prediction
-    predicted_species, confidence_scores = classifier.predict_species(protein_values_log2)
-    
-    return predicted_species, confidence_scores
-
 def main():
     """
     Main function for command-line usage.
     """
-    parser = argparse.ArgumentParser(description='Predict Leishmania species from protein expression data')
-    parser.add_argument('--model', type=str, default='leishmania_species_classifier',
-                       help='Path to the trained model')
+    parser = argparse.ArgumentParser(description='Predict Leishmania species using Random Forest')
+    parser.add_argument('--model', type=str, default='leishmania_random_forest_classifier',
+                       help='Path to the trained Random Forest model')
     parser.add_argument('--sample', type=str, required=True,
                        help='Path to the sample data file')
     parser.add_argument('--output', type=str, default=None,
