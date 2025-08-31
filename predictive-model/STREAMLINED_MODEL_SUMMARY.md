@@ -42,11 +42,27 @@ This document presents the streamlined Random Forest model for *Leishmania* spec
 | 2000 | 1.0000 | ±0.0000 | Perfect |
 | 5000 | 1.0000 | ±0.0000 | Perfect |
 
-### Key Findings
-1. **Minimum for 90% Accuracy**: 100 proteins
-2. **Minimum for 95% Accuracy**: 200 proteins
-3. **Perfect Performance**: Achieved with 200+ proteins
-4. **Robust Performance**: Consistent results across different protein counts
+### Species-Specific Analysis
+
+**Critical Discovery**: Different species require different numbers of proteins for optimal classification:
+
+| Species | Sample Count | 95% Accuracy | 90% Accuracy | Classification Difficulty |
+|---------|--------------|--------------|--------------|---------------------------|
+| **Lb** | 24 | 50 proteins | 50 proteins | **Easiest** |
+| **Ln** | 5 | 50 proteins | 50 proteins | **Easy** |
+| **Lp** | 10 | 50 proteins | 50 proteins | **Easy** |
+| **Lg** | 11 | 200 proteins | 200 proteins | **Hardest** |
+
+**Key Findings:**
+1. **Lg (L. guyanensis)** requires significantly more proteins (200) for reliable classification
+2. **Lb, Ln, Lp** can be classified perfectly with just 50 proteins
+3. **Lg** shows poor performance (0% accuracy) with only 50 proteins
+4. **Overall model** requires 200 proteins to ensure all species are classified correctly
+
+**Biological Implications:**
+- **Lg** may have more similar protein expression patterns to other species
+- **Lb, Ln, Lp** have more distinctive protein signatures
+- **Sample size** doesn't correlate with classification difficulty (Lg has 11 samples vs Ln with 5)
 
 ## Feature Importance
 
@@ -73,8 +89,11 @@ This document presents the streamlined Random Forest model for *Leishmania* spec
 ## Practical Applications
 
 ### Clinical Diagnostics
-- **Sample Requirements**: Minimum 200 proteins for 95% accuracy
-- **Realistic Scenarios**: Most clinical samples should exceed this threshold
+- **Sample Requirements**: 
+  - **Lb, Ln, Lp**: Minimum 50 proteins for 95% accuracy
+  - **Lg**: Minimum 200 proteins for 95% accuracy
+  - **Overall**: 200 proteins recommended for all species
+- **Species-Specific Considerations**: Lg samples need higher protein coverage
 - **Confidence Levels**: High confidence predictions with sufficient protein coverage
 
 ### Research Applications
