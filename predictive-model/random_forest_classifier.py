@@ -640,31 +640,49 @@ class LeishmaniaRandomForestClassifier:
     
     def save_model(self, model_path='leishmania_random_forest_classifier'):
         """
-        Save the trained model and preprocessing components.
+        Save the trained model and all preprocessing components in a single file.
         """
-        print(f"Saving model to {model_path}...")
+        print(f"Saving complete model to {model_path}...")
         
         import joblib
         
-        # Save model
-        joblib.dump(self.model, f"{model_path}.joblib")
-        
-        # Save preprocessing components
-        joblib.dump(self.scaler, f"{model_path}_scaler.joblib")
-        joblib.dump(self.label_encoder, f"{model_path}_label_encoder.joblib")
-        
-        if self.feature_selector:
-            joblib.dump(self.feature_selector, f"{model_path}_feature_selector.joblib")
-        
-        # Save feature information
-        feature_info = {
+        # Create a complete model package with all components
+        complete_model = {
+            'model': self.model,
+            'scaler': self.scaler,
+            'label_encoder': self.label_encoder,
+            'feature_selector': self.feature_selector,
             'feature_names': self.feature_names,
             'class_names': self.class_names,
             'gene_names': self.gene_names
         }
-        joblib.dump(feature_info, f"{model_path}_info.joblib")
         
-        print("Model saved successfully!")
+        # Save everything in a single file
+        joblib.dump(complete_model, f"{model_path}_complete.joblib")
+        
+        print("Complete model saved successfully!")
+    
+    def load_model(self, model_path='leishmania_random_forest_classifier_complete'):
+        """
+        Load the complete trained model from a single file.
+        """
+        print(f"Loading complete model from {model_path}...")
+        
+        import joblib
+        
+        # Load the complete model package
+        complete_model = joblib.load(f"{model_path}.joblib")
+        
+        # Extract all components
+        self.model = complete_model['model']
+        self.scaler = complete_model['scaler']
+        self.label_encoder = complete_model['label_encoder']
+        self.feature_selector = complete_model['feature_selector']
+        self.feature_names = complete_model['feature_names']
+        self.class_names = complete_model['class_names']
+        self.gene_names = complete_model['gene_names']
+        
+        print("Complete model loaded successfully!")
     
     def predict_species(self, protein_expression):
         """

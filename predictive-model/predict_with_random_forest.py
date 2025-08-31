@@ -99,8 +99,8 @@ def main():
     Main function for command-line usage.
     """
     parser = argparse.ArgumentParser(description='Predict Leishmania species using Random Forest')
-    parser.add_argument('--model', type=str, default='leishmania_random_forest_classifier',
-                       help='Path to the trained Random Forest model')
+    parser.add_argument('--model', type=str, default='leishmania_random_forest_classifier_complete',
+                       help='Path to the trained Random Forest model (without .joblib extension)')
     parser.add_argument('--sample', type=str, required=True,
                        help='Path to the sample data file')
     parser.add_argument('--output', type=str, default=None,

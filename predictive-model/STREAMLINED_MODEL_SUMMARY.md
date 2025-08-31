@@ -121,10 +121,7 @@ python predict_with_random_forest.py --sample path/to/sample.csv --output result
 ```
 
 ### Model Files Generated
-- `leishmania_random_forest_classifier.joblib`: Trained model
-- `leishmania_random_forest_classifier_scaler.joblib`: Feature scaler
-- `leishmania_random_forest_classifier_label_encoder.joblib`: Label encoder
-- `leishmania_random_forest_classifier_info.joblib`: Model metadata
+- `leishmania_random_forest_classifier_complete.joblib`: Complete trained model (all components in single file)
 - `random_forest_confusion_matrix.png`: Confusion matrix
 - `random_forest_feature_importance.png`: Feature importance plot
 - `comprehensive_stress_test.png`: Comprehensive stress test results (2-panel)
