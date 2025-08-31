@@ -496,81 +496,16 @@ class LeishmaniaRandomForestClassifier:
     
 
     
-    def plot_species_comparison_bars(self, species_results, protein_counts):
-        """
-        Create a detailed bar plot comparing species performance at key protein coverage levels.
-        """
-        # Key protein levels to compare
-        key_levels = [10, 20, 50, 100, 200]
-        
-        # Prepare data for bar plot
-        species_names = list(species_results.keys())
-        x_pos = np.arange(len(species_names))
-        width = 0.25
-        
-        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        
-        # Define colors for protein levels
-        level_colors = {10: 'lightcoral', 20: 'lightblue', 50: 'skyblue', 100: 'steelblue', 200: 'darkblue'}
-        
-        for i, n_proteins in enumerate(key_levels):
-            accuracies = []
-            for species in species_names:
-                if n_proteins in species_results[species]:
-                    accuracies.append(species_results[species][n_proteins]['mean'])
-                else:
-                    accuracies.append(0)
-            
-            # Create bars with offset
-            bars = ax.bar(x_pos + i * width, accuracies, width, 
-                         label=f'{n_proteins} proteins', 
-                         color=level_colors[n_proteins], 
-                         alpha=0.8, 
-                         edgecolor='black', 
-                         linewidth=1)
-            
-            # Add value labels on bars
-            for bar, acc in zip(bars, accuracies):
-                height = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                       f'{acc:.3f}', ha='center', va='bottom', fontweight='bold')
-        
-        # Customize the plot
-        ax.set_xlabel('Leishmania Species')
-        ax.set_ylabel('Classification Accuracy')
-        ax.set_title('Species-Specific Performance Comparison at Key Protein Coverage Levels')
-        ax.set_xticks(x_pos + width)
-        ax.set_xticklabels([f'{s} (n={species_results[s][list(species_results[s].keys())[0]]["count"]})' 
-                           for s in species_names])
-        ax.legend()
-        ax.grid(True, alpha=0.3, axis='y')
-        ax.set_ylim(0, 1.1)
-        
-        # Add horizontal lines for thresholds
-        ax.axhline(y=0.95, color='red', linestyle='--', alpha=0.7, label='95% Threshold')
-        ax.axhline(y=0.90, color='orange', linestyle='--', alpha=0.7, label='90% Threshold')
-        
-        plt.tight_layout()
-        plt.savefig('species_comparison_bars.png', dpi=300, bbox_inches='tight')
-        plt.show()
-        
-        print(f"\nDetailed Species Comparison at Key Protein Levels:")
-        for n_proteins in key_levels:
-            print(f"\n{n_proteins} proteins:")
-            for species in species_names:
-                if n_proteins in species_results[species]:
-                    acc = species_results[species][n_proteins]['mean']
-                    status = "✅ EXCELLENT" if acc >= 0.95 else "⚠️ GOOD" if acc >= 0.90 else "❌ POOR"
-                    print(f"  {species}: {acc:.3f} {status}")
+
     
     def plot_comprehensive_results(self, comprehensive_results, species_comprehensive_results):
         """
-        Plot comprehensive stress test results with confidence intervals and distributions.
+        Plot comprehensive stress test results with confidence intervals.
         """
         protein_counts = list(comprehensive_results.keys())
         
-        # Create subplots
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20, 16))
+        # Create subplots - only 2 panels
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
         
         # 1. Overall performance with confidence intervals
         means = [comprehensive_results[n]['mean'] for n in protein_counts]
@@ -623,49 +558,6 @@ class LeishmaniaRandomForestClassifier:
         ax2.legend()
         ax2.grid(True, alpha=0.3)
         ax2.set_xscale('log')
-        
-        # 3. Performance distribution at key protein levels
-        key_levels = [10, 20, 50, 100, 200]
-        box_data = []
-        box_labels = []
-        
-        for n_proteins in key_levels:
-            if n_proteins in comprehensive_results:
-                box_data.append(comprehensive_results[n_proteins]['all_scores'])
-                box_labels.append(f'{n_proteins} proteins')
-        
-        if box_data:
-            ax3.boxplot(box_data, labels=box_labels)
-            ax3.set_ylabel('Classification Accuracy')
-            ax3.set_title('Performance Distribution at Key Protein Levels')
-            ax3.grid(True, alpha=0.3)
-            ax3.axhline(y=0.95, color='red', linestyle='--', alpha=0.7, label='95% Threshold')
-            ax3.axhline(y=0.90, color='orange', linestyle='--', alpha=0.7, label='90% Threshold')
-            ax3.legend()
-        
-        # 4. Success rate analysis (percentage of iterations achieving thresholds)
-        success_95 = []
-        success_90 = []
-        
-        for n_proteins in protein_counts:
-            if n_proteins in comprehensive_results:
-                scores = comprehensive_results[n_proteins]['all_scores']
-                success_95.append(np.mean([1 if s >= 0.95 else 0 for s in scores]) * 100)
-                success_90.append(np.mean([1 if s >= 0.90 else 0 for s in scores]) * 100)
-        
-        x_pos = np.arange(len(protein_counts))
-        width = 0.35
-        
-        ax4.bar(x_pos - width/2, success_95, width, label='≥95% Accuracy', color='red', alpha=0.7)
-        ax4.bar(x_pos + width/2, success_90, width, label='≥90% Accuracy', color='orange', alpha=0.7)
-        
-        ax4.set_xlabel('Number of Proteins')
-        ax4.set_ylabel('Success Rate (%)')
-        ax4.set_title('Percentage of Iterations Achieving Accuracy Thresholds')
-        ax4.set_xticks(x_pos)
-        ax4.set_xticklabels(protein_counts)
-        ax4.legend()
-        ax4.grid(True, alpha=0.3)
         
         plt.tight_layout()
         plt.savefig('comprehensive_stress_test.png', dpi=300, bbox_inches='tight')
@@ -826,8 +718,7 @@ def main():
     # Stress test protein coverage with species-specific analysis
     stress_results, species_results = classifier.stress_test_protein_coverage(X, y)
     
-    # Create detailed species comparison
-    classifier.plot_species_comparison_bars(species_results, list(stress_results.keys()))
+
     
     # Run comprehensive stress test with many random combinations
     print(f"\n" + "="*60)

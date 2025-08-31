@@ -127,8 +127,7 @@ python predict_with_random_forest.py --sample path/to/sample.csv --output result
 - `leishmania_random_forest_classifier_info.joblib`: Model metadata
 - `random_forest_confusion_matrix.png`: Confusion matrix
 - `random_forest_feature_importance.png`: Feature importance plot
-- `comprehensive_stress_test.png`: Comprehensive stress test results
-- `species_comparison_bars.png`: Species-specific performance comparison
+- `comprehensive_stress_test.png`: Comprehensive stress test results (2-panel)
 
 ## Biological Validation
 
