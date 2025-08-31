@@ -1,0 +1,40 @@
+t-SNE GENE INTENSITY CLASSIFICATION - STATISTICAL ANALYSIS
+============================================================
+
+ANOVA TEST FOR tSNE1 BY SPECIES:
+----------------------------------------
+F-statistic: 206.8904
+p-value: 1.0445e-26
+Significant difference: Yes
+
+POST-HOC PAIRWISE COMPARISONS (Tukey's HSD):
+Multiple Comparison of Means - Tukey HSD, FWER=0.05 
+====================================================
+group1 group2 meandiff p-adj   lower   upper  reject
+----------------------------------------------------
+    Lb     Lg   2.9545    0.0  2.5852  3.3238   True
+    Lb     Ln   1.5679    0.0  1.0693  2.0665   True
+    Lb     Lp   2.6754    0.0  2.2936  3.0571   True
+    Lg     Ln  -1.3866    0.0 -1.9336 -0.8395   True
+    Lg     Lp  -0.2791 0.3464 -0.7222   0.164  False
+    Ln     Lp   1.1075    0.0   0.552   1.663   True
+----------------------------------------------------
+
+ANOVA TEST FOR tSNE2 BY SPECIES:
+----------------------------------------
+F-statistic: 70.5921
+p-value: 3.0507e-17
+Significant difference: Yes
+
+POST-HOC PAIRWISE COMPARISONS (Tukey's HSD):
+Multiple Comparison of Means - Tukey HSD, FWER=0.05 
+====================================================
+group1 group2 meandiff p-adj   lower   upper  reject
+----------------------------------------------------
+    Lb     Lg   0.7925 0.0003  0.3241  1.2609   True
+    Lb     Ln  -2.9064    0.0 -3.5388  -2.274   True
+    Lb     Lp  -0.5032 0.0389 -0.9874 -0.0191   True
+    Lg     Ln   -3.699    0.0 -4.3928 -3.0051   True
+    Lg     Lp  -1.2958    0.0 -1.8578 -0.7337   True
+    Ln     Lp   2.4032    0.0  1.6986  3.1078   True
+----------------------------------------------------

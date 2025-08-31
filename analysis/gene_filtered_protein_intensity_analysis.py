@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 from scipy.stats import mannwhitneyu, kruskal
+from statsmodels.stats.multitest import multipletests
 import os
 
 class GeneFilteredProteinIntensityAnalyzer:
@@ -179,137 +180,301 @@ class GeneFilteredProteinIntensityAnalyzer:
         print(f"Overall - Non-zero log2 median intensity range: {non_zero_log_overall.min():.2f} - {non_zero_log_overall.max():.2f}")
         print(f"Overall - Proteins with non-zero median: {len(non_zero_overall)} / {len(self.df)} ({len(non_zero_overall)/len(self.df)*100:.1f}%)")
     
-    def create_violin_plots(self, output_file="gene_filtered_intensity_violin_plots.png"):
-        """Create violin plots showing intensity distribution per species using median intensities."""
-        print("Creating violin plots using species-specific medians (gene-filtered)...")
+    def create_comprehensive_intensity_plots(self, output_file="gene_filtered_intensity_distributions.png"):
+        """Create comprehensive intensity distribution plots with correct Leishmania color scheme for gene-filtered data."""
+        print("Creating comprehensive intensity distribution plots with Leishmania color scheme (gene-filtered)...")
         
-        # Prepare data for violin plot using species-specific medians (non-zero only)
+        # Define Leishmania color scheme (using better hex colors from radial phylogenetic analyzer)
+        leishmania_colors = {
+            'Lb': '#1f77b4',   # Leishmania braziliensis - blue
+            'Lg': '#ff7f0e',   # L. guyanensis - orange
+            'Ln': '#d62728',   # L. naiffi - red
+            'Lp': '#2ca02c'    # L. panamensis - green
+        }
+        
+        # Prepare data for plots using species-specific medians (non-zero only)
         plot_data = []
         for species in ['Lb', 'Lg', 'Ln', 'Lp']:
             median_col = f'Median_{species}'
+            log_col = f'Log2_Median_{species}'
+            
             if median_col in self.df.columns:
-                non_zero_data = self.df[median_col].dropna()
-                for value in non_zero_data:
-                    plot_data.append({'Species': species, 'Log2_Median_Intensity': np.log2(value + 1)})
+                # Only use non-zero medians
+                non_zero_mask = self.df[median_col].notna() & (self.df[median_col] > 0)
+                medians = self.df[median_col][non_zero_mask]
+                log_medians = self.df[log_col][non_zero_mask]
+                
+                for median, log_median in zip(medians, log_medians):
+                    plot_data.append({
+                        'Species': species,
+                        'Median_Intensity': median,
+                        'Log2_Median_Intensity': log_median
+                    })
         
         plot_df = pd.DataFrame(plot_data)
         
-        # Create violin plot
-        plt.figure(figsize=(12, 8))
+        # Create figure with subplots (2x1 layout - removed redundant panels)
+        fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+        fig.suptitle('Leishmania Gene-Filtered Protein Intensity Distributions (Log2-Transformed)\n(Only proteins mapping to unique genes)', fontsize=16, fontweight='bold')
+        
+        # 1. Log2 intensity violin plot (top)
         sns.violinplot(data=plot_df, x='Species', y='Log2_Median_Intensity', 
-                      palette=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'])
+                      palette=leishmania_colors, ax=axes[0], alpha=0.7)
+        axes[0].set_title('Log2 Median Intensity Distribution (Violin Plot)', fontweight='bold')
+        axes[0].set_ylabel('Log2(Median Intensity + 1)')
+        axes[0].grid(True, alpha=0.2)
         
-        plt.title('Gene-Filtered Protein Intensity Distribution by Species\n(Only proteins mapping to unique genes)', 
-                 fontsize=14, fontweight='bold')
-        plt.xlabel('Species', fontsize=12)
-        plt.ylabel('Log2 Median Intensity', fontsize=12)
-        
-        # Add statistics
-        for i, species in enumerate(['Lb', 'Lg', 'Ln', 'Lp']):
+        # 2. Log2 intensity histogram (bottom)
+        for species in ['Lb', 'Lg', 'Ln', 'Lp']:
             species_data = plot_df[plot_df['Species'] == species]['Log2_Median_Intensity']
             if len(species_data) > 0:
-                mean_val = species_data.mean()
-                median_val = species_data.median()
-                plt.text(i, plt.ylim()[1] * 0.95, f'n={len(species_data)}\nμ={mean_val:.2f}\nmed={median_val:.2f}', 
-                        ha='center', va='top', fontsize=10, 
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+                n_bins = int(np.ceil(1 + 3.322 * np.log10(len(species_data))))
+                axes[1].hist(species_data, bins=n_bins, alpha=0.7, 
+                           label=species, density=True, color=leishmania_colors[species],
+                           edgecolor='white', linewidth=0.5)
+        
+        axes[1].set_title('Log2 Median Intensity Distribution (Histogram)', fontweight='bold')
+        axes[1].set_xlabel('Log2(Median Intensity + 1)')
+        axes[1].set_ylabel('Density')
+        axes[1].legend(framealpha=0.9)
+        axes[1].grid(True, alpha=0.2)
+        
+        # Save statistical summary to separate file
+        stats_data = plot_df.groupby('Species')['Log2_Median_Intensity'].agg(['count', 'mean', 'std', 'median', 'min', 'max']).round(3)
+        stats_file = output_file.replace('.png', '_statistics.csv')
+        stats_data.to_csv(stats_file)
+        print(f"✅ Statistical summary saved to: {stats_file}")
+        
+        # Add color legend
+        legend_elements = [plt.Line2D([0], [0], color=color, lw=4, label=f'{species}') 
+                          for species, color in leishmania_colors.items()]
+        fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 0.02), 
+                  ncol=4, title='Leishmania Species', framealpha=0.9, fancybox=True, shadow=True)
         
         plt.tight_layout()
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f"Violin plots saved to: {output_file}")
+        
+        print(f"✅ Comprehensive intensity plots saved to: {output_file}")
+        return plot_df
     
-    def create_histograms(self, output_file="gene_filtered_intensity_histograms.png"):
-        """Create histograms showing intensity distribution per species."""
-        print("Creating intensity histograms (gene-filtered)...")
+    def create_ma_plots(self, output_file="gene_ma_plots.png"):
+        """Create MA plots for differential analysis between species pairs using pre-calculated medians for gene-filtered data with statistical testing."""
+        print("Creating MA plots using species-specific medians with statistical testing (gene-filtered)...")
         
-        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-        axes = axes.ravel()
+        # Import required statistical functions
+        from scipy import stats
+        from statsmodels.stats.multitest import multipletests
         
-        for i, species in enumerate(['Lb', 'Lg', 'Ln', 'Lp']):
+        # Use pre-calculated species medians (non-zero only)
+        species_medians = {}
+        for species in ['Lb', 'Lg', 'Ln', 'Lp']:
             median_col = f'Median_{species}'
             if median_col in self.df.columns:
-                non_zero_data = self.df[median_col].dropna()
-                log_data = np.log2(non_zero_data + 1)
-                
-                axes[i].hist(log_data, bins=50, alpha=0.7, color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'][i])
-                axes[i].set_title(f'{species} - Gene-Filtered Protein Intensity Distribution', fontsize=12)
-                axes[i].set_xlabel('Log2 Median Intensity', fontsize=10)
-                axes[i].set_ylabel('Frequency', fontsize=10)
-                
-                # Add statistics
-                mean_val = log_data.mean()
-                median_val = log_data.median()
-                axes[i].axvline(mean_val, color='red', linestyle='--', alpha=0.8, label=f'Mean: {mean_val:.2f}')
-                axes[i].axvline(median_val, color='green', linestyle='--', alpha=0.8, label=f'Median: {median_val:.2f}')
-                axes[i].legend()
-                axes[i].text(0.02, 0.98, f'n={len(log_data)}', transform=axes[i].transAxes, 
-                           fontsize=10, verticalalignment='top',
-                           bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+                # Only use non-zero medians
+                non_zero_mask = self.df[median_col].notna() & (self.df[median_col] > 0)
+                species_medians[species] = self.df[median_col][non_zero_mask]
         
-        plt.tight_layout()
-        plt.savefig(output_file, dpi=300, bbox_inches='tight')
-        plt.close()
-        print(f"Histograms saved to: {output_file}")
-    
-    def create_ma_plots(self, output_file="gene_filtered_ma_plots.png"):
-        """Create MA plots for differential expression analysis."""
-        print("Creating MA plots for differential expression analysis (gene-filtered)...")
-        
-        # Create MA plots for each species pair
-        species_pairs = [('Lb', 'Lg'), ('Lb', 'Ln'), ('Lb', 'Lp'), ('Lg', 'Ln'), ('Lg', 'Lp'), ('Ln', 'Lp')]
+        # Create MA plots for all species pairs
+        species_pairs = [('Lb', 'Lg'), ('Lb', 'Ln'), ('Lb', 'Lp'), 
+                        ('Lg', 'Ln'), ('Lg', 'Lp'), ('Ln', 'Lp')]
         
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-        axes = axes.ravel()
+        fig.suptitle('MA Plots for Differential Analysis Between Species (Gene-Filtered)\n(Only proteins mapping to unique genes) - Statistical Significance with Benjamini-Hochberg', fontsize=16, fontweight='bold')
+        
+        # Collect data for export
+        export_data = []
         
         for idx, (sp1, sp2) in enumerate(species_pairs):
-            median_col1 = f'Median_{sp1}'
-            median_col2 = f'Median_{sp2}'
-            
-            if median_col1 in self.df.columns and median_col2 in self.df.columns:
-                # Get non-zero data for both species
-                valid_data = self.df[[median_col1, median_col2]].dropna()
+            if sp1 in species_medians and sp2 in species_medians:
+                row = idx // 3
+                col = idx % 3
+                ax = axes[row, col]
                 
-                if len(valid_data) > 0:
-                    # Calculate M and A values
-                    log2_sp1 = np.log2(valid_data[median_col1] + 1)
-                    log2_sp2 = np.log2(valid_data[median_col2] + 1)
+                # Get non-zero medians for both species
+                intensity1 = species_medians[sp1]
+                intensity2 = species_medians[sp2]
+                
+                # Find common proteins (proteins present in both species)
+                common_proteins = intensity1.index.intersection(intensity2.index)
+                intensity1_common = intensity1[common_proteins]
+                intensity2_common = intensity2[common_proteins]
+                
+                if len(intensity1_common) > 0:
+                    # Calculate M and A
+                    M = np.log2(intensity1_common + 1) - np.log2(intensity2_common + 1)
+                    A = (np.log2(intensity1_common + 1) + np.log2(intensity2_common + 1)) / 2
                     
-                    M = log2_sp1 - log2_sp2  # Log fold change
-                    A = (log2_sp1 + log2_sp2) / 2  # Average expression
-                    
-                    # Color code based on fold change
-                    colors = []
-                    for m_val in M:
-                        if abs(m_val) > 1:  # Log2 fold change > 2
-                            if m_val > 0:
-                                colors.append('red')  # Overexpressed in sp1
+                    # Perform statistical testing for each protein using individual sample data
+                    p_values = []
+                    for protein_id in intensity1_common.index:
+                        # Get all sample columns for each species
+                        sp1_cols = [col for col in self.df.columns if col.startswith('Intensity ') and f'{sp1}_' in col]
+                        sp2_cols = [col for col in self.df.columns if col.startswith('Intensity ') and f'{sp2}_' in col]
+                        
+                        if sp1_cols and sp2_cols:
+                            # Get individual sample intensities (not medians)
+                            sp1_values = self.df.loc[protein_id, sp1_cols].dropna()
+                            sp2_values = self.df.loc[protein_id, sp2_cols].dropna()
+                            
+                            # Filter out zero values (not detected in that sample)
+                            sp1_values = sp1_values[sp1_values > 0]
+                            sp2_values = sp2_values[sp2_values > 0]
+                            
+                            # Only test if we have enough data points (at least 2 samples per species)
+                            if len(sp1_values) >= 2 and len(sp2_values) >= 2:
+                                # Convert to numpy arrays for statistical testing
+                                sp1_array = sp1_values.values.astype(float)
+                                sp2_array = sp2_values.values.astype(float)
+                                
+                                # Perform Mann-Whitney U test on individual sample intensities
+                                try:
+                                    stat, p_val = stats.mannwhitneyu(sp1_array, sp2_array, alternative='two-sided')
+                                    p_values.append(p_val)
+                                except Exception as e:
+                                    # If test fails, try with log-transformed values
+                                    try:
+                                        log_sp1 = np.log2(sp1_array + 1)
+                                        log_sp2 = np.log2(sp2_array + 1)
+                                        stat, p_val = stats.mannwhitneyu(log_sp1, log_sp2, alternative='two-sided')
+                                        p_values.append(p_val)
+                                    except:
+                                        p_values.append(1.0)  # No significant difference
                             else:
-                                colors.append('blue')  # Downregulated in sp1
+                                p_values.append(1.0)  # Not enough data
                         else:
-                            colors.append('grey')  # No significant change
+                            p_values.append(1.0)  # No data
                     
-                    axes[idx].scatter(A, M, c=colors, alpha=0.6, s=20)
-                    axes[idx].axhline(y=0, color='black', linestyle='-', alpha=0.5)
-                    axes[idx].axhline(y=1, color='red', linestyle='--', alpha=0.5)
-                    axes[idx].axhline(y=-1, color='blue', linestyle='--', alpha=0.5)
+                    # Apply Benjamini-Hochberg correction
+                    if p_values:
+                        rejected, p_corrected, _, _ = multipletests(p_values, method='fdr_bh', alpha=0.05)
+                    else:
+                        rejected = [False] * len(M)
+                        p_corrected = [1.0] * len(M)
                     
-                    axes[idx].set_title(f'{sp1} vs {sp2} - Gene-Filtered MA Plot', fontsize=12)
-                    axes[idx].set_xlabel('A (Average Expression)', fontsize=10)
-                    axes[idx].set_ylabel('M (Log Fold Change)', fontsize=10)
+                    # Define fold change threshold (0.05 = log2 fold change of ~-4.32)
+                    fc_threshold = 0.05
+                    log2_fc_threshold = np.log2(fc_threshold)
+                    
+                    # Color coding based on fold change AND statistical significance
+                    colors = []
+                    for i, (protein_id, m_val, p_corr) in enumerate(zip(intensity1_common.index, M, p_corrected)):
+                        # Get the actual protein accession from the Protein_IDs column
+                        actual_protein_accession = self.df.loc[protein_id, 'Protein_IDs']
+                        
+                        # Determine category based on fold change AND statistical significance
+                        if p_corr > 0.05:  # Not statistically significant
+                            colors.append('lightgrey')  # Not significant
+                            category = 'Not significant'
+                        elif abs(m_val) < abs(log2_fc_threshold):
+                            colors.append('grey')  # Significant but small fold change
+                            category = 'Significant (small FC)'
+                        elif m_val > abs(log2_fc_threshold):
+                            colors.append('red')   # Overexpressed in sp1
+                            category = 'Overexpressed'
+                        else:
+                            colors.append('blue')  # Downregulated in sp1
+                            category = 'Downregulated'
+                        
+                        # Add to export data
+                        export_data.append({
+                            'Protein_Group_Accession': actual_protein_accession,
+                            'Species_Comparison': f'{sp1}_vs_{sp2}',
+                            'Fold_Change_Log2': m_val,
+                            'P_Value': p_values[i] if i < len(p_values) else 1.0,
+                            'P_Value_Corrected': p_corr,
+                            'Statistically_Significant': p_corr <= 0.05,
+                            'Category': category
+                        })
+                    
+                    # Create scatter plot with colors
+                    ax.scatter(A, M, c=colors, alpha=0.6, s=1)
+                    ax.axhline(y=0, color='black', linestyle='--', alpha=0.7)
+                    ax.axhline(y=log2_fc_threshold, color='red', linestyle=':', alpha=0.5)
+                    ax.axhline(y=-log2_fc_threshold, color='blue', linestyle=':', alpha=0.5)
+                    ax.set_xlabel('A = (log2(Intensity1) + log2(Intensity2))/2')
+                    ax.set_ylabel(f'M = log2({sp1}) - log2({sp2})')
+                    ax.set_title(f'{sp1} vs {sp2}')
+                    ax.grid(True, alpha=0.3)
                     
                     # Add statistics
-                    overexpressed = sum(1 for m in M if m > 1)
-                    downregulated = sum(1 for m in M if m < -1)
-                    total = len(M)
-                    axes[idx].text(0.02, 0.98, f'Overexpressed: {overexpressed}\nDownregulated: {downregulated}\nTotal: {total}', 
-                                 transform=axes[idx].transAxes, fontsize=9, verticalalignment='top',
-                                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+                    mean_M = np.mean(M)
+                    std_M = np.std(M)
+                    
+                    # Count differentially expressed proteins
+                    significant_overexpressed = sum(1 for m_val, p_corr in zip(M, p_corrected) 
+                                                  if m_val > abs(log2_fc_threshold) and p_corr <= 0.05)
+                    significant_downregulated = sum(1 for m_val, p_corr in zip(M, p_corrected) 
+                                                  if m_val < -abs(log2_fc_threshold) and p_corr <= 0.05)
+                    significant_small_fc = sum(1 for m_val, p_corr in zip(M, p_corrected) 
+                                             if abs(m_val) < abs(log2_fc_threshold) and p_corr <= 0.05)
+                    not_significant = sum(1 for p_corr in p_corrected if p_corr > 0.05)
+                    
+                    ax.text(0.05, 0.95, 
+                           f'Mean M: {mean_M:.3f}\nStd M: {std_M:.3f}\n'
+                           f'Sig. Overexpressed: {significant_overexpressed}\n'
+                           f'Sig. Downregulated: {significant_downregulated}\n'
+                           f'Sig. Small FC: {significant_small_fc}\n'
+                           f'Not significant: {not_significant}', 
+                           transform=ax.transAxes, verticalalignment='top',
+                           bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+        
+        # Add legend for color coding
+        legend_elements = [
+            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='lightgrey', markersize=8, label='Not significant'),
+            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='grey', markersize=8, label='Significant (small FC)'),
+            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=8, label='Overexpressed'),
+            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=8, label='Downregulated')
+        ]
+        fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=4, 
+                  title='Fold Change Threshold: 0.05 | Statistical Significance: Benjamini-Hochberg (α=0.05)')
         
         plt.tight_layout()
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f"MA plots saved to: {output_file}")
+        
+        # Export protein differential expression data
+        if export_data:
+            export_df = pd.DataFrame(export_data)
+            export_file = output_file.replace('.png', '_differential_expression.csv')
+            export_df.to_csv(export_file, index=False)
+            print(f"✅ Gene-filtered protein differential expression data with statistical testing saved to: {export_file}")
+            
+            # Export specific data for overexpressed and downregulated proteins
+            significant_changes = export_df[export_df['Category'].isin(['Overexpressed', 'Downregulated'])]
+            if len(significant_changes) > 0:
+                # Add gene accession information
+                significant_changes_with_genes = []
+                for _, row in significant_changes.iterrows():
+                    # Find the protein in the main dataframe to get gene information
+                    protein_accession = row['Protein_Group_Accession']
+                    # Find the protein by matching Protein_IDs column
+                    protein_mask = self.df['Protein_IDs'] == protein_accession
+                    if protein_mask.any():
+                        gene_accession = self.df.loc[protein_mask, 'Gene_ID'].iloc[0]
+                    else:
+                        gene_accession = "Unknown"
+                    
+                    significant_changes_with_genes.append({
+                        'Species_Combination': row['Species_Comparison'],
+                        'Protein_Group_Accession': protein_accession,
+                        'Gene_Accession': gene_accession,
+                        'Category': row['Category'],
+                        'Fold_Change': round(row['Fold_Change_Log2'], 3),
+                        'P_Value_Corrected': round(row['P_Value_Corrected'], 3)
+                    })
+                
+                # Create and export the specific CSV
+                specific_export_df = pd.DataFrame(significant_changes_with_genes)
+                specific_export_file = output_file.replace('.png', '_overexpressed_downregulated.csv')
+                specific_export_df.to_csv(specific_export_file, index=False)
+                print(f"✅ Overexpressed and downregulated proteins exported to: {specific_export_file}")
+                print(f"   - Total overexpressed proteins: {len(significant_changes[significant_changes['Category'] == 'Overexpressed'])}")
+                print(f"   - Total downregulated proteins: {len(significant_changes[significant_changes['Category'] == 'Downregulated'])}")
+            else:
+                print("⚠️  No overexpressed or downregulated proteins found to export.")
+        
+        print(f"✅ MA plots with statistical testing saved to: {output_file}")
     
     def perform_statistical_tests(self, output_file="gene_filtered_statistical_tests.txt"):
         """Perform statistical tests comparing intensity distributions between species."""
@@ -379,100 +544,7 @@ class GeneFilteredProteinIntensityAnalyzer:
         self.df.to_csv(output_file, index=False)
         print(f"Processed data saved to: {output_file}")
     
-    def create_comprehensive_report(self, output_file="gene_filtered_comprehensive_analysis_report.png"):
-        """Create a comprehensive analysis report with multiple plots."""
-        print("Creating comprehensive analysis report (gene-filtered)...")
-        
-        fig = plt.figure(figsize=(20, 16))
-        
-        # 1. Violin plot (top left)
-        ax1 = plt.subplot(2, 3, 1)
-        plot_data = []
-        for species in ['Lb', 'Lg', 'Ln', 'Lp']:
-            median_col = f'Median_{species}'
-            if median_col in self.df.columns:
-                non_zero_data = self.df[median_col].dropna()
-                for value in non_zero_data:
-                    plot_data.append({'Species': species, 'Log2_Median_Intensity': np.log2(value + 1)})
-        
-        plot_df = pd.DataFrame(plot_data)
-        sns.violinplot(data=plot_df, x='Species', y='Log2_Median_Intensity', 
-                      palette=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'], ax=ax1)
-        ax1.set_title('Gene-Filtered Intensity Distribution', fontsize=12, fontweight='bold')
-        
-        # 2. Box plot (top middle)
-        ax2 = plt.subplot(2, 3, 2)
-        sns.boxplot(data=plot_df, x='Species', y='Log2_Median_Intensity', 
-                   palette=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'], ax=ax2)
-        ax2.set_title('Gene-Filtered Intensity Box Plot', fontsize=12, fontweight='bold')
-        
-        # 3. Histogram (top right)
-        ax3 = plt.subplot(2, 3, 3)
-        for species in ['Lb', 'Lg', 'Ln', 'Lp']:
-            median_col = f'Median_{species}'
-            if median_col in self.df.columns:
-                non_zero_data = self.df[median_col].dropna()
-                log_data = np.log2(non_zero_data + 1)
-                ax3.hist(log_data, bins=30, alpha=0.6, label=species)
-        ax3.set_title('Gene-Filtered Intensity Histograms', fontsize=12, fontweight='bold')
-        ax3.legend()
-        
-        # 4. MA plot example (bottom left)
-        ax4 = plt.subplot(2, 3, 4)
-        median_col1 = 'Median_Lb'
-        median_col2 = 'Median_Lg'
-        if median_col1 in self.df.columns and median_col2 in self.df.columns:
-            valid_data = self.df[[median_col1, median_col2]].dropna()
-            if len(valid_data) > 0:
-                log2_sp1 = np.log2(valid_data[median_col1] + 1)
-                log2_sp2 = np.log2(valid_data[median_col2] + 1)
-                M = log2_sp1 - log2_sp2
-                A = (log2_sp1 + log2_sp2) / 2
-                ax4.scatter(A, M, alpha=0.6, s=20)
-                ax4.axhline(y=0, color='black', linestyle='-', alpha=0.5)
-                ax4.set_title('Lb vs Lg - Gene-Filtered MA Plot', fontsize=12, fontweight='bold')
-                ax4.set_xlabel('A (Average Expression)')
-                ax4.set_ylabel('M (Log Fold Change)')
-        
-        # 5. Summary statistics (bottom middle)
-        ax5 = plt.subplot(2, 3, 5)
-        ax5.axis('off')
-        stats_text = "GENE-FILTERED ANALYSIS SUMMARY\n\n"
-        for species in ['Lb', 'Lg', 'Ln', 'Lp']:
-            median_col = f'Median_{species}'
-            if median_col in self.df.columns:
-                non_zero_data = self.df[median_col].dropna()
-                log_data = np.log2(non_zero_data + 1)
-                stats_text += f"{species}:\n"
-                stats_text += f"  n = {len(log_data)}\n"
-                stats_text += f"  mean = {log_data.mean():.2f}\n"
-                stats_text += f"  median = {log_data.median():.2f}\n\n"
-        
-        stats_text += f"Total proteins analyzed: {len(self.df)}\n"
-        stats_text += f"All proteins mapping to unique genes"
-        
-        ax5.text(0.1, 0.9, stats_text, transform=ax5.transAxes, fontsize=10, 
-                verticalalignment='top', fontfamily='monospace',
-                bbox=dict(boxstyle="round,pad=0.5", facecolor='lightgray', alpha=0.8))
-        
-        # 6. Correlation heatmap (bottom right)
-        ax6 = plt.subplot(2, 3, 6)
-        correlation_data = []
-        for species in ['Lb', 'Lg', 'Ln', 'Lp']:
-            median_col = f'Median_{species}'
-            if median_col in self.df.columns:
-                correlation_data.append(self.df[median_col].fillna(0))
-        
-        if len(correlation_data) >= 2:
-            corr_df = pd.DataFrame(correlation_data, index=['Lb', 'Lg', 'Ln', 'Lp'][:len(correlation_data)]).T
-            corr_matrix = corr_df.corr()
-            sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, ax=ax6)
-            ax6.set_title('Gene-Filtered Intensity Correlation', fontsize=12, fontweight='bold')
-        
-        plt.tight_layout()
-        plt.savefig(output_file, dpi=300, bbox_inches='tight')
-        plt.close()
-        print(f"Comprehensive report saved to: {output_file}")
+
     
     def run_complete_analysis(self):
         """Run the complete gene-filtered protein intensity analysis."""
@@ -483,17 +555,15 @@ class GeneFilteredProteinIntensityAnalyzer:
         self.load_and_process_data()
         
         # Create output directory
-        output_dir = "gene_filtered_analysis"
+        output_dir = "gene-based"
         os.makedirs(output_dir, exist_ok=True)
         
         # Generate all analyses
         print("\n📊 Generating analyses...")
         
         # Create visualizations
-        self.create_violin_plots(os.path.join(output_dir, "gene_filtered_intensity_violin_plots.png"))
-        self.create_histograms(os.path.join(output_dir, "gene_filtered_intensity_histograms.png"))
-        self.create_ma_plots(os.path.join(output_dir, "gene_filtered_ma_plots.png"))
-        self.create_comprehensive_report(os.path.join(output_dir, "gene_filtered_comprehensive_analysis_report.png"))
+        self.create_comprehensive_intensity_plots(os.path.join(output_dir, "intensity_distributions.png"))
+        self.create_ma_plots(os.path.join(output_dir, "gene_ma_plots.png"))
         
         # Perform statistical tests
         self.perform_statistical_tests(os.path.join(output_dir, "gene_filtered_statistical_tests.txt"))

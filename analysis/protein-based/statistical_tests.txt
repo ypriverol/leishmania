@@ -1,0 +1,76 @@
+Kruskal-Wallis Test (All Species):
+  H-statistic: 161.4818
+  p-value: 8.7770e-35
+  Significant difference: Yes
+
+Mann-Whitney U Tests (Species Pairs):
+==================================================
+Lb vs Lg:
+  U-statistic: 30038329.0000
+  p-value: 2.0176e-05
+  Significant difference: Yes
+  Effect size (r): 4.263
+
+Lb vs Ln:
+  U-statistic: 33968765.0000
+  p-value: 1.1655e-16
+  Significant difference: Yes
+  Effect size (r): 8.287
+
+Lb vs Lp:
+  U-statistic: 30037174.0000
+  p-value: 8.3443e-02
+  Significant difference: No
+  Effect size (r): 1.731
+
+Lg vs Ln:
+  U-statistic: 31634418.5000
+  p-value: 1.4286e-32
+  Significant difference: Yes
+  Effect size (r): 11.884
+
+Lg vs Lp:
+  U-statistic: 28048134.0000
+  p-value: 4.0272e-02
+  Significant difference: Yes
+  Effect size (r): 2.051
+
+Ln vs Lp:
+  U-statistic: 25287766.0000
+  p-value: 2.0846e-21
+  Significant difference: Yes
+  Effect size (r): 9.501
+
+Summary Statistics (Log2 Median Intensities):
+==================================================
+Lb:
+  Count: 8329
+  Mean Log2 Intensity: 25.369
+  Median Log2 Intensity: 24.735
+  Std Log2 Intensity: 2.633
+  Min Log2 Intensity: 18.826
+  Max Log2 Intensity: 37.586
+
+Lg:
+  Count: 7507
+  Mean Log2 Intensity: 25.516
+  Median Log2 Intensity: 24.965
+  Std Log2 Intensity: 2.663
+  Min Log2 Intensity: 17.703
+  Max Log2 Intensity: 37.631
+
+Ln:
+  Count: 7581
+  Mean Log2 Intensity: 24.996
+  Median Log2 Intensity: 24.576
+  Std Log2 Intensity: 2.620
+  Min Log2 Intensity: 18.554
+  Max Log2 Intensity: 36.812
+
+Lp:
+  Count: 7330
+  Mean Log2 Intensity: 25.444
+  Median Log2 Intensity: 24.954
+  Std Log2 Intensity: 2.763
+  Min Log2 Intensity: 18.039
+  Max Log2 Intensity: 37.213

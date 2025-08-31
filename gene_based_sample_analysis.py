@@ -303,7 +303,7 @@ class GeneSampleAnalyzer:
         ax.set_xticks(angles)
         ax.set_xticklabels(species_list, fontsize=12, fontweight='bold')
         
-        # Add legend
+        # Add legend below the radial plot
         legend_elements = []
         for species, color in species_colors.items():
             if species in uniqueness_data:
@@ -311,7 +311,7 @@ class GeneSampleAnalyzer:
                 legend_elements.append(plt.Rectangle((0,0),1,1, facecolor=color, alpha=0.8, 
                                                    label=f'{species} ({sample_count} samples)'))
         
-        ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.3, 1.0))
+        ax.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, -0.1))
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -370,7 +370,7 @@ class GeneSampleAnalyzer:
         uniqueness_data = self.calculate_gene_uniqueness_by_samples(sample_matrix)
         
         # Create output directory
-        output_dir = "gene_sample_analysis"
+        output_dir = "phylogenic-analysis/gene-based"
         os.makedirs(output_dir, exist_ok=True)
         
         # Build phylogenetic trees (sample-level clustering)

@@ -19,8 +19,6 @@ from data_processor import DataProcessor
 # -----------------------
 file_path = r"raw_data.txt.gz"
 base_out   = r"./"
-phylo_dir  = os.path.join(base_out, "phylogenic-analysis/protein-based")
-os.makedirs(phylo_dir, exist_ok=True)
 
 # -----------------------
 # Helpers
@@ -155,7 +153,7 @@ def calculate_protein_uniqueness(df, strain_cols):
     
     return uniqueness_data
 
-def plot_radial_phtic_tree(Z, labels, uniqueness_data, out_png):
+def plot_radial_phtic_tree(Z, labels, uniqueness_data, out_png, title_suffix):
     """Create a true radial dendrogram using the clustering structure in Z,
     split into four species sections, and overlay per-strain pie charts.
     """
@@ -461,7 +459,7 @@ def plot_radial_phtic_tree(Z, labels, uniqueness_data, out_png):
         ax.plot([xp, x*0.98], [yp, y*0.98], color=color, alpha=0.3, linewidth=0.8)
     
     # Add title
-    ax.set_title('Leishmania Phylogenic Tree based on Protein Groups', 
+    ax.set_title(f'Leishmania Phylogenic Tree {title_suffix}', 
                 fontsize=16, pad=20)
     
     # Add legend below the radial plot
@@ -506,57 +504,11 @@ def spearman_upgma(matrix, labels, tag):
     Z = linkage(D, method="average")
     return Z, D
 
+
+
 # -----------------------
-# Load + clean data using common data processor
+# Helper Functions for Dendrogram
 # -----------------------
-print("🔄 Loading data using common data processor...")
-
-# Initialize data processor
-processor = DataProcessor(file_path)
-
-# Load and process data
-protein_df, gene_df = processor.load_and_process_data()
-sample_info_df = processor.sample_info_df
-
-# Use gene_df for phylogenetic analysis (only proteins with unique gene mapping)
-df = gene_df.copy()
-df = df.set_index("Protein_IDs")
-
-print(f"✅ Loaded {len(df)} proteins with unique gene mapping for phylogenetic analysis")
-
-# Identify species intensity columns using processor information
-species_cols = {}
-for species in ['Lb', 'Lg', 'Ln', 'Lp']:
-    species_cols[species] = [c for c in df.columns if c.startswith(f'Intensity {species}_')]
-    if len(species_cols[species]) > 0:
-        print(f"Found {len(species_cols[species])} columns for {species}")
-
-# Strain-level matrix
-all_cols = sum(species_cols.values(), [])
-X_strain = df[all_cols].copy()
-X_strain = np.log1p(X_strain)
-X_strain = pd.DataFrame(
-    SimpleImputer(strategy="constant", fill_value=0.0).fit_transform(X_strain),
-    index=df.index, columns=all_cols
-)
-X_strain = X_strain.T
-strain_labels = list(X_strain.index)
-
-print("Calculating protein uniqueness...")
-# Calculate protein uniqueness for each strain
-uniqueness_data = calculate_protein_uniqueness(df, all_cols)
-
-print("Building phylogenetic trees...")
-# Build trees
-Z_bray, D_bray = braycurtis_upgma(X_strain.values, strain_labels, tag="strain")
-Z_spear, D_spear = spearman_upgma(X_strain.values, strain_labels, tag="strain")
-
-print("Generating radial phylogenetic tree...")
-# Generate radial phylogenetic tree
-plot_radial_phtic_tree(Z_bray, strain_labels, uniqueness_data, 
-                             os.path.join(phylo_dir, "radial_phylogenetic_tree.png"))
-
-# Also save the traditional dendrogram for comparison
 def plot_dendro(Z, labels, title, out_png):
     # Fixed colors for each species
     species_color_map = {
@@ -665,11 +617,113 @@ def plot_dendro(Z, labels, title, out_png):
     plt.savefig(out_png, dpi=300)
     plt.close()
 
-# Save traditional dendrogram for comparison
-plot_dendro(Z_bray, strain_labels, "UPGMA (Bray-Curtis) – strain",
-            os.path.join(phylo_dir, "traditional_dendrogram.png"))
+# -----------------------
+# Main Analysis Function
+# -----------------------
+def run_phylogenetic_analysis(analysis_type="protein"):
+    """
+    Run phylogenetic analysis for either protein-based or gene-based data.
+    
+    Args:
+        analysis_type (str): Either "protein" or "gene"
+    """
+    if analysis_type == "protein":
+        phylo_dir = os.path.join(base_out, "phylogenic-analysis/protein-based")
+        title_suffix = "based on Protein Groups"
+        data_source = "protein_df"
+    elif analysis_type == "gene":
+        phylo_dir = os.path.join(base_out, "phylogenic-analysis/gene-based")
+        title_suffix = "based on Unique Genes"
+        data_source = "gene_df"
+    else:
+        raise ValueError("analysis_type must be either 'protein' or 'gene'")
+    
+    os.makedirs(phylo_dir, exist_ok=True)
+    
+    print(f"🔄 Running {analysis_type}-based phylogenetic analysis...")
+    
+    # Initialize data processor
+    processor = DataProcessor(file_path)
+    
+    # Load and process data
+    protein_df, gene_df = processor.load_and_process_data()
+    sample_info_df = processor.sample_info_df
+    
+    # Select appropriate dataframe
+    if analysis_type == "protein":
+        df = protein_df.copy()
+        print(f"✅ Loaded {len(df)} protein groups for phylogenetic analysis")
+    else:  # gene
+        df = gene_df.copy()
+        print(f"✅ Loaded {len(df)} genes with unique gene mapping for phylogenetic analysis")
+    
+    df = df.set_index("Protein_IDs")
+    
+    # Identify species intensity columns using processor information
+    species_cols = {}
+    for species in ['Lb', 'Lg', 'Ln', 'Lp']:
+        species_cols[species] = [c for c in df.columns if c.startswith(f'Intensity {species}_')]
+        if len(species_cols[species]) > 0:
+            print(f"Found {len(species_cols[species])} columns for {species}")
+    
+    # Strain-level matrix
+    all_cols = sum(species_cols.values(), [])
+    X_strain = df[all_cols].copy()
+    X_strain = np.log1p(X_strain)
+    X_strain = pd.DataFrame(
+        SimpleImputer(strategy="constant", fill_value=0.0).fit_transform(X_strain),
+        index=df.index, columns=all_cols
+    )
+    X_strain = X_strain.T
+    strain_labels = list(X_strain.index)
+    
+    print("Calculating protein uniqueness...")
+    # Calculate protein uniqueness for each strain
+    uniqueness_data = calculate_protein_uniqueness(df, all_cols)
+    
+    print("Building phylogenetic trees...")
+    # Build trees
+    Z_bray, D_bray = braycurtis_upgma(X_strain.values, strain_labels, tag="strain")
+    Z_spear, D_spear = spearman_upgma(X_strain.values, strain_labels, tag="strain")
+    
+    print("Generating radial phylogenetic tree...")
+    # Generate radial phylogenetic tree with appropriate title
+    plot_radial_phtic_tree(Z_bray, strain_labels, uniqueness_data, 
+                          os.path.join(phylo_dir, "radial_phylogenetic_tree.png"),
+                          title_suffix)
+    
+    # Save traditional dendrogram for comparison
+    plot_dendro(Z_bray, strain_labels, f"UPGMA (Bray-Curtis) – strain ({analysis_type}-based)",
+                os.path.join(phylo_dir, "traditional_dendrogram.png"))
+    
+    print(f"✅ {analysis_type.capitalize()}-based phylogenetic analysis complete!")
+    print(f"📁 Results saved to: {phylo_dir}")
+    print("Files generated:")
+    print("- radial_phylogenetic_tree.png: Radial tree with pie charts")
+    print("- traditional_dendrogram.png: Traditional dendrogram for comparison")
+    
+    return phylo_dir
 
-print("✅ Radial phylogenetic tree written to:", phylo_dir)
-print("Files generated:")
-print("- radial_phylogenetic_tree.png: Radial tree with pie charts")
-print("- traditional_dendrogram.png: Traditional dendrogram for comparison")
+# -----------------------
+# Main Execution
+# -----------------------
+if __name__ == "__main__":
+    print("🚀 Starting comprehensive phylogenetic analysis...")
+    print("=" * 60)
+    
+    # Run protein-based analysis
+    print("\n📊 PROTEIN-BASED ANALYSIS")
+    print("-" * 30)
+    run_phylogenetic_analysis("protein")
+    
+    # Run gene-based analysis
+    print("\n🧬 GENE-BASED ANALYSIS")
+    print("-" * 30)
+    run_phylogenetic_analysis("gene")
+    
+    print("\n✅ All phylogenetic analyses complete!")
+    print("=" * 60)
+
+
+
+
