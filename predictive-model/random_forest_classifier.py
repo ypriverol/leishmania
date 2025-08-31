@@ -441,6 +441,73 @@ class LeishmaniaRandomForestClassifier:
                 species_90 = min([n for n, r in species_results[species].items() if r['mean'] >= 0.90], default='Not achieved')
                 print(f"{species}: 95% accuracy at {species_95} proteins, 90% accuracy at {species_90} proteins")
     
+    def plot_species_comparison_bars(self, species_results, protein_counts):
+        """
+        Create a detailed bar plot comparing species performance at key protein coverage levels.
+        """
+        # Key protein levels to compare
+        key_levels = [50, 100, 200]
+        
+        # Prepare data for bar plot
+        species_names = list(species_results.keys())
+        x_pos = np.arange(len(species_names))
+        width = 0.25
+        
+        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+        
+        # Define colors for protein levels
+        level_colors = {50: 'lightblue', 100: 'skyblue', 200: 'darkblue'}
+        
+        for i, n_proteins in enumerate(key_levels):
+            accuracies = []
+            for species in species_names:
+                if n_proteins in species_results[species]:
+                    accuracies.append(species_results[species][n_proteins]['mean'])
+                else:
+                    accuracies.append(0)
+            
+            # Create bars with offset
+            bars = ax.bar(x_pos + i * width, accuracies, width, 
+                         label=f'{n_proteins} proteins', 
+                         color=level_colors[n_proteins], 
+                         alpha=0.8, 
+                         edgecolor='black', 
+                         linewidth=1)
+            
+            # Add value labels on bars
+            for bar, acc in zip(bars, accuracies):
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                       f'{acc:.3f}', ha='center', va='bottom', fontweight='bold')
+        
+        # Customize the plot
+        ax.set_xlabel('Leishmania Species')
+        ax.set_ylabel('Classification Accuracy')
+        ax.set_title('Species-Specific Performance Comparison at Key Protein Coverage Levels')
+        ax.set_xticks(x_pos + width)
+        ax.set_xticklabels([f'{s} (n={species_results[s][list(species_results[s].keys())[0]]["count"]})' 
+                           for s in species_names])
+        ax.legend()
+        ax.grid(True, alpha=0.3, axis='y')
+        ax.set_ylim(0, 1.1)
+        
+        # Add horizontal lines for thresholds
+        ax.axhline(y=0.95, color='red', linestyle='--', alpha=0.7, label='95% Threshold')
+        ax.axhline(y=0.90, color='orange', linestyle='--', alpha=0.7, label='90% Threshold')
+        
+        plt.tight_layout()
+        plt.savefig('species_comparison_bars.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        print(f"\nDetailed Species Comparison at Key Protein Levels:")
+        for n_proteins in key_levels:
+            print(f"\n{n_proteins} proteins:")
+            for species in species_names:
+                if n_proteins in species_results[species]:
+                    acc = species_results[species][n_proteins]['mean']
+                    status = "✅ EXCELLENT" if acc >= 0.95 else "⚠️ GOOD" if acc >= 0.90 else "❌ POOR"
+                    print(f"  {species}: {acc:.3f} {status}")
+    
     def plot_feature_importance(self):
         """
         Plot feature importance with gene names.
@@ -576,6 +643,9 @@ def main():
     # Stress test protein coverage with species-specific analysis
     stress_results, species_results = classifier.stress_test_protein_coverage(X, y)
     classifier.plot_stress_test_results(stress_results, species_results)
+    
+    # Create detailed species comparison
+    classifier.plot_species_comparison_bars(species_results, list(stress_results.keys()))
     
     # Save the model
     classifier.save_model()
