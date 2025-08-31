@@ -100,9 +100,52 @@ class LeishmaniaRandomForestClassifier:
         # Store gene names for feature importance
         if 'Gene_Names' in df.columns:
             self.gene_names = df['Gene_Names'].values
+        elif 'Gene_IDs' in df.columns:
+            self.gene_names = df['Gene_IDs'].values
+        elif 'Protein_IDs' in df.columns:
+            # Extract gene names from protein IDs
+            self.gene_names = []
+            for protein_id in df['Protein_IDs']:
+                if pd.isna(protein_id):
+                    self.gene_names.append("Unknown_Gene")
+                else:
+                    protein_str = str(protein_id)
+                    # Try to extract gene name from various formats
+                    if '|' in protein_str:
+                        # Format: gene_name|protein_id
+                        gene_name = protein_str.split('|')[0]
+                    elif ';' in protein_str:
+                        # Format: gene_name;protein_id
+                        gene_name = protein_str.split(';')[0]
+                    elif '_' in protein_str and len(protein_str.split('_')) > 1:
+                        # Format: gene_name_protein_id
+                        parts = protein_str.split('_')
+                        if len(parts) >= 2:
+                            gene_name = parts[0] + '_' + parts[1]
+                        else:
+                            gene_name = parts[0]
+                    else:
+                        # Use the protein ID as gene name
+                        gene_name = protein_str
+                    self.gene_names.append(gene_name)
         else:
-            self.gene_names = [f"Gene_{i}" for i in range(len(df))]
+            # If no gene information available, use protein index
+            self.gene_names = [f"Protein_{i}" for i in range(len(df))]
         
+        # Clean up gene names (remove any remaining generic patterns)
+        cleaned_gene_names = []
+        for gene_name in self.gene_names:
+            if pd.isna(gene_name):
+                cleaned_gene_names.append("Unknown_Gene")
+            else:
+                gene_str = str(gene_name).strip()
+                # Remove any remaining generic patterns
+                if gene_str.startswith('Gene_') and gene_str[5:].isdigit():
+                    cleaned_gene_names.append(f"Protein_{gene_str[5:]}")
+                else:
+                    cleaned_gene_names.append(gene_str)
+        
+        self.gene_names = cleaned_gene_names
         self.feature_names = self.gene_names
         self.class_names = self.label_encoder.classes_
         
@@ -338,11 +381,20 @@ class LeishmaniaRandomForestClassifier:
         # Plot top 20 features
         top_features = feature_df.head(20)
         
-        plt.figure(figsize=(12, 8))
+        # Create figure with larger size to accommodate longer gene names
+        plt.figure(figsize=(14, 10))
         bars = plt.barh(range(len(top_features)), top_features['Importance'])
         
-        # Use actual gene names
-        plt.yticks(range(len(top_features)), top_features['Gene_Name'])
+        # Use actual gene names and handle long names
+        gene_names_display = []
+        for gene_name in top_features['Gene_Name']:
+            # Truncate very long names for display
+            if len(str(gene_name)) > 40:
+                gene_names_display.append(str(gene_name)[:37] + "...")
+            else:
+                gene_names_display.append(str(gene_name))
+        
+        plt.yticks(range(len(top_features)), gene_names_display)
         plt.xlabel('Feature Importance')
         plt.title('Top 20 Most Important Genes for Species Classification')
         plt.gca().invert_yaxis()  # Show highest importance at top
@@ -356,10 +408,12 @@ class LeishmaniaRandomForestClassifier:
         plt.savefig('random_forest_feature_importance.png', dpi=300, bbox_inches='tight')
         plt.show()
         
-        # Print top features
+        # Print top features with full names
         print(f"\nTop 10 Most Important Genes:")
         for i, row in top_features.head(10).iterrows():
-            print(f"{i+1:2d}. {row['Gene_Name']:<30} Importance: {row['Importance']:.4f}")
+            gene_name = str(row['Gene_Name'])
+            # Show full gene name in console output
+            print(f"{i+1:2d}. {gene_name:<50} Importance: {row['Importance']:.4f}")
         
         return feature_df
     

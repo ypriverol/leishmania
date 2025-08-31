@@ -54,16 +54,16 @@ This document presents the streamlined Random Forest model for *Leishmania* spec
 
 | Rank | Gene Name | Importance Score |
 |------|-----------|------------------|
-| 1 | Gene_1417 | 0.0171 |
-| 2 | Gene_376 | 0.0121 |
-| 3 | Gene_7999 | 0.0119 |
-| 4 | Gene_5290 | 0.0110 |
-| 5 | Gene_6562 | 0.0109 |
-| 6 | Gene_4351 | 0.0109 |
-| 7 | Gene_1317 | 0.0105 |
-| 8 | Gene_123 | 0.0103 |
-| 9 | Gene_4499 | 0.0102 |
-| 10 | Gene_4428 | 0.0098 |
+| 1 | A0A088S321 | 0.0171 |
+| 2 | A0A088RMX3 | 0.0121 |
+| 3 | A0AAW3CA53 | 0.0119 |
+| 4 | A0A3P3ZI12 | 0.0110 |
+| 5 | A0AAW3BKQ2 | 0.0109 |
+| 6 | A0A3P3Z9Z8 | 0.0109 |
+| 7 | A0A1E1J905 | 0.0105 |
+| 8 | A0A088RJB3 | 0.0103 |
+| 9 | A0A3P3ZB87 | 0.0102 |
+| 10 | A0A3P3ZAP3 | 0.0098 |
 
 ### Biological Insights
 - **Concentrated Information**: Top 10 genes account for ~11% of total importance
